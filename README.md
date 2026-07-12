@@ -1,106 +1,14 @@
 # md-paper
 
-🌐 [**English**](#english) · [中文](#中文说明)
+🌐 [**中文**](#中文说明) · [English](#english)
 
-> **Revise your academic paper with AI — without breaking a single Zotero citation, figure, table, or cross-reference.** / **用 AI 改论文——不毁任何一个 Zotero 引用、图、表、交叉引用。**
-> Ingest Word → edit a Markdown source of truth → compile back to Word with live citations. A suite of [Claude Code](https://www.claude.com/product/claude-code) skills for the *last mile* from an AI draft to a submission-ready `.docx`.
+> **用 AI 改论文——不毁任何一个 Zotero 引用、图、表、交叉引用。** / **Revise your academic paper with AI — without breaking a single Zotero citation, figure, table, or cross-reference.**
+> Word 摄取 → 改一份 Markdown 真源 → 编回带活引用的 Word。一套 [Claude Code](https://www.claude.com/product/claude-code) 技能,专治"从 AI 初稿到能投稿的 `.docx`"这最后一公里。
 
-> ⚠️ **v0.1 — early public (beta) release.** Battle-tested on the author's real journal submissions, but new to other people's machines. Read [Known Limitations](#known-limitations) first. / **首个公开测试版**,请先读[已知限制](#已知限制)。
-
-<a id="english"></a>
-## English
-
-### One picture
-
-| Editing Word by hand | md-paper (Markdown source + AI + pandoc) |
-|---|---|
-| 😫 Revise every reviewer comment one by one | ✅ **Swarm**: drop the whole pile in, AI revises in batch |
-| 😫 One Zotero *Refresh* wrecks your citations | ✅ **Live Zotero fields survive** — Refresh anytime |
-| 😫 Figure/table numbers scramble after edits | ✅ **Auto-numbering + cross-references**, never wrong |
-| 😫 Word formatting breaks; Ctrl+Z is your only hope | ✅ **Plain-text Markdown source** — git-versioned |
-| 😫 You discover a lost citation three rounds too late | ✅ **Never-drop-a-citation hard gate** |
-| 😫 Endless copy-paste between browser and Word | ✅ **Everything in the editor** — zero pasting |
-| 😫 The result reeks of "AI writing" | ✅ **Seven de-AI rules** lower the machine-written signal |
-
-### Why — the seven pain points it solves
-
-Social-science authors (economics, management, sociology…) submit in **Word**, and the moment you paste AI output back, everything academic falls apart. md-paper fixes each:
-
-1. **The web-AI copy-paste loop.** → *Dump comments in; AI applies them to the Markdown source; you only think at the approval gate.*
-2. **Auto-revision tools are LaTeX-only, not Word.** → *Write Markdown, compile a perfectly formatted `.docx` with pandoc. No LaTeX.*
-3. **Figures, tables, captions, notes, Zotero fields scramble the instant AI touches Word.** → *Output carries **live Zotero fields**, auto-numbered figures, cross-references that never break.*
-4. **One comment at a time — no batch, no multi-agent.** → ***Swarm**: 30 comments → auto-organized → you approve once → parallel agents draft, a script lands them safely.*
-5. **Vague comments take forever to execute.** → *Language rules turn "remove all first person" into a single swarm task.*
-6. **Citations vanish silently mid-revision.** → *A hard gate **refuses** to drop a citation; a checker lists every dropped/split citation. Figures, tables, equations are watched the same way.*
-7. **The revised paper reads like a machine wrote it.** → *Seven de-AI rules baked into the flow. Change only *how* it's said, never *what*.*
-
-### Core features
-
-🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 built as composable Claude Code skills.
-
-### Requirements
-
-- **Windows + Microsoft Word** — ingest (`md-unpack`) reads Word citation fields/figures via COM. *(macOS not supported yet; everything after ingest is cross-platform.)*
-- **Python 3** and **PowerShell** (Windows-native 5.1 is fine).
-- **Zotero + the Zotero Word plugin** — to activate the live citations in your final `.docx` (press **Refresh** in Word). **Better BibTeX** is additionally required **only** for *live* mode and for **adding new references during revision** — it is **not** needed for the common flow *ingest an existing paper → revise → rebuild*.
-- **A large-context AI model (recommended).** `md-swarm` reads your whole manuscript in each agent; for long papers a **200K+ (ideally 1M) context window** avoids truncation.
-- **pandoc toolchain** — installed **automatically** by `setup_md_tools.ps1`, which downloads the **pinned** pandoc 3.9.0.2 + pandoc-crossref 0.3.24a from the official releases (the two versions must match — the installer handles it; **you download nothing**). Behind a slow/blocked network, pass `-Mirror https://<a-github-mirror>`.
-
-### Install — let an AI do it
-
-In any [Claude Code](https://www.claude.com/product/claude-code) session, clone the repo, then tell your AI:
-
-```
-git clone https://github.com/pwya/md-paper.git
-```
-> **"Read `INSTALL.md` in the md-paper folder and set up md-paper for me."**
-
-The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into Claude Code, install the pandoc toolchain, and register the protection hooks. You don't type the commands yourself. Prefer manual? INSTALL.md lists every command.
-
-### How to use
-
-Five-stage pipeline. **Always start with `md-unpack`, finish with `md-build`;** the middle depends on how much you're changing.
-
-```mermaid
-flowchart LR
-    A["📄 paper.docx"] --> B["📥 md-unpack<br/>ingest"]
-    B --> C["📝 manuscript.md<br/>(source of truth)"]
-    C --> D{"how big is<br/>the revision?"}
-    D -->|"tiny fix"| E["✏️ hand-edit"]
-    D -->|"one passage, with AI"| K["🎯 md-iterate"]
-    D -->|"a pile of comments"| T["🗂️ md-triage<br/>organize → you approve"]
-    T --> F["🐝 md-swarm<br/>parallel AI revision"]
-    E --> G["📤 md-build<br/>compile"]
-    K --> G
-    F --> G
-    G --> H["📗 Word .docx"]
-```
-
-1. **`md-unpack`** — *ingest.* Word `.docx` → `manuscript.md` (Markdown source of truth). **Run first.**
-2. **`md-triage`** — *organize.* A pile of revision intents → a checklist you approve. *(Big revisions only.)*
-3. **`md-swarm`** — *batch-revise.* Parallel AI agents apply the approved checklist, citation-safe. *(Big revisions only.)*
-4. **`md-iterate`** — *polish one passage* with AI. *(Small edits.)*
-5. **`md-build`** — *compile* back to Word. **Run last.**
-
-**In one line:** `md-unpack` → (hand-edit · or `md-iterate` · or `md-triage` + `md-swarm`) → `md-build`.
-
-> 📖 Full walkthrough, per-skill internals, command cheat-sheet, and a 30-comment worked example: **[User Guide](md-技能套件·用户完全手册.md)** (中文).
-
-### Known Limitations
-
-- **Windows + Microsoft Word only** — `md-unpack` drives Word via COM; macOS is not supported yet.
-- *Other minor limitations (citation providers, page locators, escaping edge cases, floating figures, legacy AxMath equations) are not listed here — see the [User Guide](md-技能套件·用户完全手册.md).*
-
-### License
-
-Workflow code [Apache-2.0](LICENSE) © 2026 Yuang Panwang (潘王雨昂). Third-party: pandoc & pandoc-crossref (GPL-2.0) are *downloaded at setup*, not redistributed here; bundled Zotero/Lua filters are MIT — see [NOTICE](NOTICE).
-
----
+> ⚠️ **v0.1 · 首个公开测试版。** 已在作者真实投稿中反复验证,但初次面向他人的机器。请先读[已知限制](#已知限制)。 / **Early public (beta) release** — read [Known Limitations](#known-limitations) first.
 
 <a id="中文说明"></a>
 ## 中文说明
-
-[⬆ back to top / 回到顶部](#md-paper)
 
 ### 一图胜千言
 
@@ -136,7 +44,7 @@ Workflow code [Apache-2.0](LICENSE) © 2026 Yuang Panwang (潘王雨昂). Third-
 - **Python 3** + **PowerShell**(Windows 自带 5.1 即可)。
 - **Zotero + Zotero 的 Word 插件** —— 用来在最终 `.docx` 里**激活活引用**(Word 里点 **Refresh**)。**Better BibTeX** 只在 *live* 模式和**改稿时新增文献**才**额外必需**——常规流(摄取已有稿 → 改 → rebuild)**不需要**它。
 - **建议用大上下文 AI 模型。** `md-swarm` 每个 agent 都要读整篇稿子,长论文建议 **200K+(最好 1M)上下文窗口**,免得读不全被截断。
-- **pandoc 工具链** —— 由 `setup_md_tools.ps1` **自动安装**:从官方发布页下载**锁定版** pandoc 3.9.0.2 + crossref 0.3.24a(两者必须配套,脚本自动搞定,**你什么都不用下载/上传**)。国内网络慢就加 `-Mirror https://<镜像>`。
+- **pandoc 工具链** —— 由 `setup_md_tools.ps1` **自动安装**:从官方发布页下载**锁定版** pandoc 3.9.0.2 + crossref 0.3.24a(两者必须配套,脚本自动搞定,**你什么都不用下载/上传**)。⚠️ **国内网络往往下载不了 GitHub 上的 pandoc,可能需要开代理 / VPN**;也可以加 `-Mirror https://<镜像>` 走镜像。
 
 ### 安装——让 AI 替你装
 
@@ -186,3 +94,95 @@ flowchart LR
 ### 许可
 
 工作流代码 [Apache-2.0](LICENSE) © 2026 潘王雨昂 (Yuang Panwang)。第三方:pandoc 与 pandoc-crossref(GPL-2.0)安装时下载、不随仓库分发;内置 Zotero/Lua 过滤器为 MIT——见 [NOTICE](NOTICE)。
+
+---
+
+<a id="english"></a>
+## English
+
+[⬆ 回到顶部 / back to top](#md-paper)
+
+### One picture
+
+| Editing Word by hand | md-paper (Markdown source + AI + pandoc) |
+|---|---|
+| 😫 Revise every reviewer comment one by one | ✅ **Swarm**: drop the whole pile in, AI revises in batch |
+| 😫 One Zotero *Refresh* wrecks your citations | ✅ **Live Zotero fields survive** — Refresh anytime |
+| 😫 Figure/table numbers scramble after edits | ✅ **Auto-numbering + cross-references**, never wrong |
+| 😫 Word formatting breaks; Ctrl+Z is your only hope | ✅ **Plain-text Markdown source** — git-versioned |
+| 😫 You discover a lost citation three rounds too late | ✅ **Never-drop-a-citation hard gate** |
+| 😫 Endless copy-paste between browser and Word | ✅ **Everything in the editor** — zero pasting |
+| 😫 The result reeks of "AI writing" | ✅ **Seven de-AI rules** lower the machine-written signal |
+
+### Why — the seven pain points it solves
+
+Social-science authors (economics, management, sociology…) submit in **Word**, and the moment you paste AI output back, everything academic falls apart. md-paper fixes each:
+
+1. **The web-AI copy-paste loop.** → *Dump comments in; AI applies them to the Markdown source; you only think at the approval gate.*
+2. **Auto-revision tools are LaTeX-only, not Word.** → *Write Markdown, compile a perfectly formatted `.docx` with pandoc. No LaTeX.*
+3. **Figures, tables, captions, notes, Zotero fields scramble the instant AI touches Word.** → *Output carries **live Zotero fields**, auto-numbered figures, cross-references that never break.*
+4. **One comment at a time — no batch, no multi-agent.** → ***Swarm**: 30 comments → auto-organized → you approve once → parallel agents draft, a script lands them safely.*
+5. **Vague comments take forever to execute.** → *Language rules turn "remove all first person" into a single swarm task.*
+6. **Citations vanish silently mid-revision.** → *A hard gate **refuses** to drop a citation; a checker lists every dropped/split citation. Figures, tables, equations are watched the same way.*
+7. **The revised paper reads like a machine wrote it.** → *Seven de-AI rules baked into the flow. Change only *how* it's said, never *what*.*
+
+### Core features
+
+🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 built as composable Claude Code skills.
+
+### Requirements
+
+- **Windows + Microsoft Word** — ingest (`md-unpack`) reads Word citation fields/figures via COM. *(macOS not supported yet; everything after ingest is cross-platform.)*
+- **Python 3** and **PowerShell** (Windows-native 5.1 is fine).
+- **Zotero + the Zotero Word plugin** — to activate the live citations in your final `.docx` (press **Refresh** in Word). **Better BibTeX** is additionally required **only** for *live* mode and for **adding new references during revision** — it is **not** needed for the common flow *ingest an existing paper → revise → rebuild*.
+- **A large-context AI model (recommended).** `md-swarm` reads your whole manuscript in each agent; for long papers a **200K+ (ideally 1M) context window** avoids truncation.
+- **pandoc toolchain** — installed **automatically** by `setup_md_tools.ps1`, which downloads the **pinned** pandoc 3.9.0.2 + pandoc-crossref 0.3.24a from the official releases (the two versions must match — the installer handles it; **you download nothing**). ⚠️ **If GitHub downloads fail (common in restricted networks), you may need a proxy / VPN**; or pass `-Mirror https://<a-github-mirror>`.
+
+### Install — let an AI do it
+
+In any [Claude Code](https://www.claude.com/product/claude-code) session, clone the repo, then tell your AI:
+
+```
+git clone https://github.com/pwya/md-paper.git
+```
+> **"Read `INSTALL.md` in the md-paper folder and set up md-paper for me."**
+
+The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into Claude Code, install the pandoc toolchain, and register the protection hooks. You don't type the commands yourself. Prefer manual? INSTALL.md lists every command.
+
+### How to use
+
+Five-stage pipeline. **Always start with `md-unpack`, finish with `md-build`;** the middle depends on how much you're changing.
+
+```mermaid
+flowchart LR
+    A["📄 paper.docx"] --> B["📥 md-unpack<br/>ingest"]
+    B --> C["📝 manuscript.md<br/>(source of truth)"]
+    C --> D{"how big is<br/>the revision?"}
+    D -->|"tiny fix"| E["✏️ hand-edit"]
+    D -->|"one passage, with AI"| K["🎯 md-iterate"]
+    D -->|"a pile of comments"| T["🗂️ md-triage<br/>organize → you approve"]
+    T --> F["🐝 md-swarm<br/>parallel AI revision"]
+    E --> G["📤 md-build<br/>compile"]
+    K --> G
+    F --> G
+    G --> H["📗 Word .docx"]
+```
+
+1. **`md-unpack`** — *ingest.* Word `.docx` → `manuscript.md` (Markdown source of truth). **Run first.**
+2. **`md-triage`** — *organize.* A pile of revision intents → a checklist you approve. *(Big revisions only.)*
+3. **`md-swarm`** — *batch-revise.* Parallel AI agents apply the approved checklist, citation-safe. *(Big revisions only.)*
+4. **`md-iterate`** — *polish one passage* with AI. *(Small edits.)*
+5. **`md-build`** — *compile* back to Word. **Run last.**
+
+**In one line:** `md-unpack` → (hand-edit · or `md-iterate` · or `md-triage` + `md-swarm`) → `md-build`.
+
+> 📖 Full walkthrough, per-skill internals, command cheat-sheet, and a 30-comment worked example: **[User Guide](md-技能套件·用户完全手册.md)** (中文).
+
+### Known Limitations
+
+- **Windows + Microsoft Word only** — `md-unpack` drives Word via COM; macOS is not supported yet.
+- *Other minor limitations (citation providers, page locators, escaping edge cases, floating figures, legacy AxMath equations) are not listed here — see the [User Guide](md-技能套件·用户完全手册.md).*
+
+### License
+
+Workflow code [Apache-2.0](LICENSE) © 2026 Yuang Panwang (潘王雨昂). Third-party: pandoc & pandoc-crossref (GPL-2.0) are *downloaded at setup*, not redistributed here; bundled Zotero/Lua filters are MIT — see [NOTICE](NOTICE).
