@@ -64,14 +64,21 @@ AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆
 
 ### 安装——让 AI 替你装
 
-在任意 [Claude Code](https://www.claude.com/product/claude-code) 会话里克隆本仓库,然后对 AI 说:
+**第一步:把这个仓库弄到你电脑上。** 两种方式,任选一种:
 
-```
-git clone https://github.com/pwya/md-paper.git
-```
-> **"读一下 md-paper 文件夹里的 `INSTALL.md`,帮我把 md-paper 装好。"**
+- **不会命令行(推荐给小白):** 点这个页面右上角绿色的 **`< > Code`** 按钮 → **Download ZIP** → 下载后**解压**到一个你记得住的文件夹。
+- **会用 git:** 在终端运行
+  ```
+  git clone https://github.com/pwya/md-paper.git
+  ```
 
-AI 会照着 [INSTALL.md](INSTALL.md)(可执行操作手册)把五个技能接进 Claude Code、装工具链、注册保护钩子,**你不用敲命令**。想手动装,INSTALL.md 里也列了每条命令。
+**第二步:用 [VS Code](https://code.visualstudio.com/) 打开这个文件夹。** 打开 VS Code → 菜单 **File → Open Folder(打开文件夹)** → 选中你刚解压/克隆出来的 **`md-paper`** 文件夹。然后在里面开一个 [Claude Code](https://www.claude.com/product/claude-code) 会话。
+
+**第三步:让 AI 替你装。** 对 AI 说:
+
+> **"读一下 `INSTALL.md`,帮我把 md-paper 装好。"**
+
+AI 会照着 [INSTALL.md](INSTALL.md)(一份可执行的操作手册)把五个技能接进 Claude Code、装 pandoc 工具链、注册保护钩子,**你一条命令都不用自己敲**。想手动装,INSTALL.md 里也逐条列了命令。
 
 ### 环境要求
 
@@ -176,14 +183,21 @@ Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rh
 
 ### Install — let an AI do it
 
-In any [Claude Code](https://www.claude.com/product/claude-code) session, clone the repo, then tell your AI:
+**Step 1 — Get this repo onto your computer.** Either way works:
 
-```
-git clone https://github.com/pwya/md-paper.git
-```
-> **"Read `INSTALL.md` in the md-paper folder and set up md-paper for me."**
+- **No command line (easiest):** click the green **`< > Code`** button at the top of this page → **Download ZIP** → **unzip** it to a folder you'll remember.
+- **If you use git:**
+  ```
+  git clone https://github.com/pwya/md-paper.git
+  ```
 
-The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into Claude Code, install the pandoc toolchain, and register the protection hooks. You don't type the commands yourself. Prefer manual? INSTALL.md lists every command.
+**Step 2 — Open the folder in [VS Code](https://code.visualstudio.com/).** In VS Code: **File → Open Folder** → pick the **`md-paper`** folder you just unzipped/cloned. Then start a [Claude Code](https://www.claude.com/product/claude-code) session inside it.
+
+**Step 3 — Let an AI install it.** Tell your AI:
+
+> **"Read `INSTALL.md` and set up md-paper for me."**
+
+The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into Claude Code, install the pandoc toolchain, and register the protection hooks. **You don't type a single command yourself.** Prefer manual? INSTALL.md lists every command.
 
 ### Requirements
 

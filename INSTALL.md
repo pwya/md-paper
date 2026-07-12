@@ -27,14 +27,13 @@ md-paper's ingest needs **Windows + Microsoft Word**. Check the essentials:
 
 ### Step 1 — Locate the repo root
 
-This `INSTALL.md` sits in the md-paper repo root (the folder that contains `md-unpack/`, `md-build/`, etc.). Determine that folder's absolute path — call it `$repo`. If the user hasn't cloned it yet:
+This `INSTALL.md` sits in the md-paper repo root (the folder that contains `md-unpack/`, `md-build/`, etc.) — almost always the folder the user has open in their editor. Set `$repo` to that folder's absolute path (the directory containing this file):
 
 ```powershell
-git clone https://github.com/pwya/md-paper.git
-$repo = (Resolve-Path .\md-paper).Path
+$repo = (Get-Location).Path   # if the working dir IS the md-paper folder; otherwise use its full path
 ```
 
-If they already cloned it, set `$repo` to that folder.
+If the files aren't on disk yet, the user can obtain them either way: **Download ZIP** (the green **`< > Code` → Download ZIP** button on GitHub, then unzip) — or `git clone https://github.com/pwya/md-paper.git`. Then set `$repo` to that unzipped/cloned `md-paper` folder. Confirm it's right: `Test-Path (Join-Path $repo 'md-build\setup_md_tools.ps1')` should return `True`.
 
 ### Step 2 — Link the five skills into Claude Code
 
