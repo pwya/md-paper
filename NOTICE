@@ -1,0 +1,47 @@
+md-* skill suite
+Copyright 2026 Yuang Panwang (潘王雨昂)
+
+Licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License in the LICENSE file in this
+repository, or at http://www.apache.org/licenses/LICENSE-2.0
+
+================================================================================
+THIRD-PARTY SOFTWARE
+--------------------------------------------------------------------------------
+This suite USES the third-party software below. Your Apache-2.0 license above
+does NOT relicense them; each remains under its own terms. Two categories:
+
+  (A) Invoked as external programs, NOT redistributed in this repository.
+      The installer downloads them at setup time from their official releases.
+
+  (B) Files physically bundled in this repository, kept under their original
+      MIT license (attribution retained; see bundled-lua/THIRD_PARTY_NOTICES.md).
+================================================================================
+
+(A) EXTERNAL PROGRAMS -- downloaded by md-build/setup_md_tools.ps1, not shipped here
+--------------------------------------------------------------------------------
+  Pandoc
+    https://github.com/jgm/pandoc
+    License: GPL-2.0
+    No Pandoc source or binary is included in this repository. The installer
+    fetches the official pinned release (pandoc 3.9.0.2) from the upstream
+    GitHub release page.
+
+  pandoc-crossref
+    https://github.com/lierdakil/pandoc-crossref
+    License: GPL-2.0
+    Not included in this repository. The installer fetches the official pinned
+    release (v0.3.24a) from the upstream GitHub release page.
+
+(B) BUNDLED FILES -- under md-build/bundled-lua/ , original MIT license retained
+--------------------------------------------------------------------------------
+  zotero.lua, locator.lua, utils.lua, pandoc-zotero-live-citemarkers.lua
+    From: https://github.com/retorquere/zotero-better-bibtex  (pandoc/ directory)
+    License: MIT -- Copyright (c) 2020 Emiliano Heyns
+
+  lunajson.lua and lunajson/ (decoder.lua, encoder.lua, sax.lua)
+    From: https://github.com/grafi-tt/lunajson
+    License: MIT -- Copyright (c) 2015-2017 Shunsuke Shimizu (grafi)
+
+  Full MIT license texts for the bundled files are in:
+    md-build/bundled-lua/THIRD_PARTY_NOTICES.md

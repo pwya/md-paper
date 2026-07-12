@@ -1,0 +1,16 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Bundled external programs are downloaded by setup_md_tools.ps1, never committed
+# (GPL-2.0 binaries + GitHub's 100MB limit). See NOTICE.
+md-build/bundled-bin/*.exe
+
+# md-* pipeline scratch / backups
+*.applybak
+manuscript_provisional.md
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/

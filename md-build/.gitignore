@@ -1,0 +1,13 @@
+# --- Bundled external programs: do NOT commit to a public repo ---
+# pandoc.exe (221MB) and pandoc-crossref.exe (99MB) are GPL-2.0 upstream
+# binaries. Two reasons they must stay out of git:
+#   1. GitHub rejects any single file > 100MB (pandoc.exe is ~221MB).
+#   2. Redistributing a GPL-2.0 binary triggers GPL source-offer obligations.
+# setup_md_tools.ps1 downloads the pinned official releases at setup time,
+# so these files are only a local offline cache -- keep them on disk, but
+# never push them.
+bundled-bin/*.exe
+
+# Python bytecode
+__pycache__/
+*.pyc
