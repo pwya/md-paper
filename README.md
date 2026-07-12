@@ -131,7 +131,7 @@ flowchart LR
 <a id="english"></a>
 ## English
 
-[⬆ 回到顶部 / back to top](#md-paper)
+[⬆ 回到顶部 / back to top](#中文说明)
 
 ### The seven pain points of AI-assisted academic writing
 
