@@ -1,16 +1,50 @@
 # md-paper
 
+### 🎯 md 系列技能 —— 解决「AI 到论文」的最后一公里 · *the last mile from AI to a finished paper*
+
 🌐 [**中文**](#中文说明) · [English](#english)
 
 > **用 AI 改论文——不毁任何一个 Zotero 引用、图、表、交叉引用。** / **Revise your academic paper with AI — without breaking a single Zotero citation, figure, table, or cross-reference.**
-> Word 摄取 → 改一份 Markdown 真源 → 编回带活引用的 Word。一套 [Claude Code](https://www.claude.com/product/claude-code) 技能,专治"从 AI 初稿到能投稿的 `.docx`"这最后一公里。
+> Word 摄取 → 改一份 Markdown 真源 → 编回带活引用的 Word。一套 [Claude Code](https://www.claude.com/product/claude-code) 技能。
 
 > ⚠️ **v0.1 · 首个公开测试版。** 已在作者真实投稿中反复验证,但初次面向他人的机器。请先读[已知限制](#已知限制)。 / **Early public (beta) release** — read [Known Limitations](#known-limitations) first.
 
 <a id="中文说明"></a>
 ## 中文说明
 
-### 一图胜千言
+### 当前 AI 辅助学术写作的七大痛点
+
+做这套工具链之前,我们和几十位经济学/管理学/社会学博士生聊过"用 AI 写论文到底卡在哪"。下面是大家反复提到的痛点——**每一条,md-paper 都恰好能解决**。
+
+**痛点 1:网页端 AI 的"对话—复制—粘贴"死循环。**
+在 ChatGPT / Claude 网页端和 AI 对话改论文,看起来省了思考,实则陷入更耗精力的体力活:**每改一段就要复制粘贴一轮**——"把这一段改得更学术"→ 等回复 → 选中 → Ctrl+C → 切回 Word → Ctrl+V → 格式崩了 → 调格式 → 下一段……一个下午过去,真正动脑的时间不到半小时。
+> ✅ **md-paper:意见批量扔进去,AI 自动逐条改到 Markdown 真源里**,你只在人工闸确认时动一次脑,其余体力活全免。
+
+**痛点 2:绝大多数自动修改工具只支持 LaTeX,不支持 Word。**
+计算机/数学/物理领域有大量 LaTeX + AI 的写作工具链,但经济学、管理学、社会学等社会科学**主流投稿格式是 Word**。自己想好的各种排版、表格、题注、样式,没办法通过多 Agent 流水线实现——要么手搓 Word,要么被迫学 LaTeX 换赛道。
+> ✅ **md-paper:Markdown 写作 + pandoc 编译出 Word**。你在纯文本里写,最终一键生成格式完美的 .docx。不需要学 LaTeX,不需要手搓 Word COM。
+
+**痛点 3:Word 里的图、表、题注、注释、Zotero 域——AI 一改全乱。**
+Word 文档里嵌着丰富的学术基础设施:图的题注("Figure 1: …")、表的题注和注释("Note: …")、Zotero 引用域、交叉引用书签……用网页端 AI 改完粘贴回 Word 时,**这些全部丢失或错乱**。更致命的是 Zotero Refresh 一下,之前精心调整的引用格式全部打回原形。
+> ✅ **md-paper:出稿自带活 Zotero 域**(Word 里 Refresh 即用),**图表自动编号 + 交叉引用永远不错**,表下注释原生保留。纯文本真源改不坏。
+
+**痛点 4:一次只能改一条意见,无法批量多 Agent 修改。**
+你和网页端 AI 对话时,一次只能说一件事:"帮我把引言改得更简洁"。说完等回复,再粘贴,再说下一件。**就算你自己完全理解了 30 条审稿意见,把它们逐一打字成 prompt 再逐一粘贴结果,就已经耗尽了一整天**——根本没有"批量多 Agent 并行修改"的可能。
+> ✅ **md-paper:蜂群模式(Swarm)**——30 条审稿意见扔进去,AI 自动分类、去重、合并(`md-triage`)→ 你一次性确认 → **并行**派多个 agent 起草、确定性脚本**串行落盘**到真源(`md-swarm`)。从"一次改一条"升级到"一次改一整轮审稿"。
+
+**痛点 5:审稿意见太笼统,自己生成初稿耗时耗力。**
+"请把文章中的第一人称改为客观第三人称"、"减少语法纰漏"、"提高文献综述的覆盖面"……这类审稿意见**理解起来不难,但执行起来极其耗时**:你要通读全文找每一处 I/we/our,逐一替换;要逐句检查语法;要翻遍文献补漏。审稿人一句话,你要干一整天。
+> ✅ **md-paper:去 AI 味 + 语言铁律内嵌在子 Agent 契约里**。笼统意见交给 AI 逐条落地——"全文去第一人称"就是一个 swarm 任务,几分钟改完,你只做最终确认。
+
+**痛点 6:改稿过程中引用静默丢失,发现时已晚。**
+这是开发过程中实际测量到的**真实事故类型**:AI 改稿时会"顺手"删掉它觉得不重要的引用、拆散成组引用 `[@a; @b; @c]`、把 citekey 改错一个字母——等你发现时已经过了好几轮修改,根本追溯不到是哪一步丢的。
+> ✅ **md-paper:引用默认不删硬闸**——补丁模式下少一条引用直接拒写;**引用体检**——改完后自动列出每一条被丢的 citekey、被拆的引用组、无定义的交叉引用。图、表、公式(带编号的)也一样,每个改稿批次都被数着。
+
+**痛点 7:改完的稿子读起来像 AI 写的。**
+AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆砌、破折号泛滥、读起来不像人写的。期刊审稿人越来越容易识别 AI 生成文本,这对投稿是致命伤。
+> ✅ **md-paper:七条去 AI 味铁律**内嵌在改稿流程里——少修辞、短句、打破工整、降正式度、保信息、少破折号、全覆盖。只改"怎么说",不改"说什么"。
+
+### 一表胜千言
 
 | 传统改稿（手搓 Word） | md-paper（Markdown 真源 + AI + pandoc） |
 | --- | --- |
@@ -22,29 +56,9 @@
 | 😫 网页端复制粘贴到手软 | ✅ **全流程在编辑器内**,零粘贴 |
 | 😫 改完一股 AI 味被审稿人识破 | ✅ **七条去 AI 味铁律** |
 
-### 为什么——它解决的七大痛点
-
-社科作者主流投稿格式是 **Word**,你一把 AI 结果粘回 Word,所有学术基础设施就崩了。md-paper 逐条解决:
-
-1. **网页端"对话—复制—粘贴"死循环。** → *意见批量扔进去,AI 改到 Markdown 真源,你只在人工闸动一次脑。*
-2. **自动改稿工具只支持 LaTeX、不支持 Word。** → *Markdown 写作 + pandoc 编译出格式完美 `.docx`,不学 LaTeX。*
-3. **图/表/题注/注释/Zotero 域,AI 一改全乱。** → *出稿自带**活 Zotero 域**、图表自动编号、交叉引用永不断。*
-4. **一次只能改一条,无法批量多 Agent。** → ***蜂群模式**:30 条意见 → 自动整理 → 你确认一次 → 并行起草、脚本安全落盘。*
-5. **审稿意见太笼统,执行耗时。** → *"全文去第一人称"就是一个 swarm 任务。*
-6. **改稿中引用静默丢失,发现时已晚。** → *引用默认不删**硬闸**;引用体检列出每一条被丢/被拆的引用。图表公式同样被盯着。*
-7. **改完读起来像 AI 写的。** → *七条去 AI 味铁律内嵌在流程里。只改"怎么说",不改"说什么"。*
-
 ### 核心特性
 
 🔗 兼容 Zotero 活引用域 · 🖼️ 图/表/题注/注释纯文本 · 🔀 交叉引用自动编号 · 🐝 并行蜂群改稿 · 🛡️ 引用默认不删 · 📝 可 git diff 的 Markdown 真源 · 🔄 去 AI 味 · 🧮 OMML→LaTeX 公式 · 🧰 全局工具链 · 🧩 Claude Code 技能形态、可组合。
-
-### 环境要求
-
-- **Windows + Microsoft Word** —— 摄取(`md-unpack`)靠 Word COM 读引用域/图。*(macOS 暂不支持;摄取之后全跨平台。)*
-- **Python 3** + **PowerShell**(Windows 自带 5.1 即可)。
-- **Zotero + Zotero 的 Word 插件** —— 用来在最终 `.docx` 里**激活活引用**(Word 里点 **Refresh**)。**Better BibTeX** 只在 *live* 模式和**改稿时新增文献**才**额外必需**——常规流(摄取已有稿 → 改 → rebuild)**不需要**它。
-- **建议用大上下文 AI 模型。** `md-swarm` 每个 agent 都要读整篇稿子,长论文建议 **200K+(最好 1M)上下文窗口**,免得读不全被截断。
-- **pandoc 工具链** —— 由 `setup_md_tools.ps1` **自动安装**:从官方发布页下载**锁定版** pandoc 3.9.0.2 + crossref 0.3.24a(两者必须配套,脚本自动搞定,**你什么都不用下载/上传**)。⚠️ **国内网络往往下载不了 GitHub 上的 pandoc,可能需要开代理 / VPN**;也可以加 `-Mirror https://<镜像>` 走镜像。
 
 ### 安装——让 AI 替你装
 
@@ -56,6 +70,14 @@ git clone https://github.com/pwya/md-paper.git
 > **"读一下 md-paper 文件夹里的 `INSTALL.md`,帮我把 md-paper 装好。"**
 
 AI 会照着 [INSTALL.md](INSTALL.md)(可执行操作手册)把五个技能接进 Claude Code、装工具链、注册保护钩子,**你不用敲命令**。想手动装,INSTALL.md 里也列了每条命令。
+
+### 环境要求
+
+- **Windows + Microsoft Word** —— 摄取(`md-unpack`)靠 Word COM 读引用域/图。*(macOS 暂不支持;摄取之后全跨平台。)*
+- **Python 3** + **PowerShell**(Windows 自带 5.1 即可)。
+- **Zotero + Zotero 的 Word 插件** —— 用来在最终 `.docx` 里**激活活引用**(Word 里点 **Refresh**)。**Better BibTeX** 只在 *live* 模式和**改稿时新增文献**才**额外必需**——常规流(摄取已有稿 → 改 → rebuild)**不需要**它。
+- **建议用大上下文 AI 模型。** `md-swarm` 每个 agent 都要读整篇稿子,长论文建议 **200K+(最好 1M)上下文窗口**,免得读不全被截断。
+- **pandoc 工具链** —— 由 `setup_md_tools.ps1` **自动安装**:从官方发布页下载**锁定版** pandoc 3.9.0.2 + crossref 0.3.24a(两者必须配套,脚本自动搞定,**你什么都不用下载/上传**)。⚠️ **国内网络往往下载不了 GitHub 上的 pandoc,可能需要开代理 / VPN**;也可以加 `-Mirror https://<镜像>` 走镜像。
 
 ### 怎么用
 
@@ -102,7 +124,39 @@ flowchart LR
 
 [⬆ 回到顶部 / back to top](#md-paper)
 
-### One picture
+### The seven pain points of AI-assisted academic writing
+
+Before building this, we talked to dozens of economics / management / sociology PhD students about where "writing papers with AI" actually breaks down. These are the pain points they kept raising — **md-paper solves every one.**
+
+**Pain 1 — The web-AI "chat → copy → paste" death loop.**
+Revising a paper by chatting with ChatGPT / Claude in the browser looks like it saves thinking, but it traps you in worse manual labor: **every paragraph is a copy-paste round** — "make this more academic" → wait → select → Ctrl+C → back to Word → Ctrl+V → formatting broke → fix it → next paragraph… An afternoon gone, under 30 minutes of real thinking.
+> ✅ **md-paper: drop the comments in, AI applies them one by one to the Markdown source.** You think once, at the approval gate; the grunt work is gone.
+
+**Pain 2 — Most auto-revision tools are LaTeX-only, not Word.**
+CS / math / physics have rich LaTeX + AI pipelines, but economics, management, and sociology **submit in Word**. Your layout, tables, captions, and styles can't ride a multi-agent pipeline — you either hand-code Word or are forced to switch to LaTeX.
+> ✅ **md-paper: write Markdown, compile to Word with pandoc.** You write plain text; one command produces a perfectly formatted `.docx`. No LaTeX, no hand-coding Word COM.
+
+**Pain 3 — Figures, tables, captions, notes, Zotero fields all scramble the instant AI touches Word.**
+A Word manuscript embeds rich academic infrastructure: figure captions, table captions and notes, Zotero citation fields, cross-reference bookmarks. Paste browser-AI output back into Word and **it's all lost or scrambled** — and one Zotero *Refresh* resets every citation you carefully adjusted.
+> ✅ **md-paper: output carries live Zotero fields** (Refresh in Word), **auto-numbered figures/tables + cross-references that never break**, table notes preserved. A plain-text source can't be scrambled.
+
+**Pain 4 — One comment at a time; no batch, no multi-agent.**
+Chatting with a browser AI, you can only say one thing at a time: "make the intro more concise." Even if you fully understand 30 reviewer comments, **typing each into a prompt and pasting each result back already burns a full day** — parallel multi-agent revision is simply impossible.
+> ✅ **md-paper: Swarm mode** — drop in 30 comments, AI classifies/dedups/merges them (`md-triage`) → you approve once → **parallel** agents draft, a deterministic script lands them **serially** into the source (`md-swarm`). From "one comment at a time" to "one whole review round at a time."
+
+**Pain 5 — Vague comments take forever to execute.**
+"Change first person to objective third person," "reduce grammatical slips," "broaden the literature review" — **easy to understand, brutally slow to do**: read the whole paper for every I/we/our and replace each; check every sentence's grammar; hunt down missing references. One reviewer sentence, one full day of work.
+> ✅ **md-paper: de-AI rules + language rules are baked into the agent contract.** A vague comment becomes an executable task — "remove all first person" is a single swarm job, done in minutes; you just approve.
+
+**Pain 6 — Citations vanish silently mid-revision, discovered too late.**
+A **real, measured failure type** from development: while revising, AI quietly drops a citation it deems unimportant, splits a group `[@a; @b; @c]`, or mistypes one letter of a citekey — and by the time you notice, several rounds have passed and it's untraceable.
+> ✅ **md-paper: a never-drop-a-citation hard gate** — in patch mode, losing one citation is hard-rejected; **a ref-check** lists every dropped citekey, split group, and dangling cross-reference after each revision. Figures, tables, and (numbered) equations are counted every batch too.
+
+**Pain 7 — The revised paper reads like a machine wrote it.**
+Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rhetoric, em-dashes everywhere. Reviewers increasingly spot machine-generated text, and that's fatal for a submission.
+> ✅ **md-paper: seven de-AI rules** baked into the flow — less rhetoric, short sentences, break the symmetry, lower the formality, keep the information, fewer em-dashes, cover everything. Change only *how* it's said, never *what*.
+
+### One table, a thousand words
 
 | Editing Word by hand | md-paper (Markdown source + AI + pandoc) |
 |---|---|
@@ -114,29 +168,9 @@ flowchart LR
 | 😫 Endless copy-paste between browser and Word | ✅ **Everything in the editor** — zero pasting |
 | 😫 The result reeks of "AI writing" | ✅ **Seven de-AI rules** lower the machine-written signal |
 
-### Why — the seven pain points it solves
-
-Social-science authors (economics, management, sociology…) submit in **Word**, and the moment you paste AI output back, everything academic falls apart. md-paper fixes each:
-
-1. **The web-AI copy-paste loop.** → *Dump comments in; AI applies them to the Markdown source; you only think at the approval gate.*
-2. **Auto-revision tools are LaTeX-only, not Word.** → *Write Markdown, compile a perfectly formatted `.docx` with pandoc. No LaTeX.*
-3. **Figures, tables, captions, notes, Zotero fields scramble the instant AI touches Word.** → *Output carries **live Zotero fields**, auto-numbered figures, cross-references that never break.*
-4. **One comment at a time — no batch, no multi-agent.** → ***Swarm**: 30 comments → auto-organized → you approve once → parallel agents draft, a script lands them safely.*
-5. **Vague comments take forever to execute.** → *Language rules turn "remove all first person" into a single swarm task.*
-6. **Citations vanish silently mid-revision.** → *A hard gate **refuses** to drop a citation; a checker lists every dropped/split citation. Figures, tables, equations are watched the same way.*
-7. **The revised paper reads like a machine wrote it.** → *Seven de-AI rules baked into the flow. Change only *how* it's said, never *what*.*
-
 ### Core features
 
 🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 built as composable Claude Code skills.
-
-### Requirements
-
-- **Windows + Microsoft Word** — ingest (`md-unpack`) reads Word citation fields/figures via COM. *(macOS not supported yet; everything after ingest is cross-platform.)*
-- **Python 3** and **PowerShell** (Windows-native 5.1 is fine).
-- **Zotero + the Zotero Word plugin** — to activate the live citations in your final `.docx` (press **Refresh** in Word). **Better BibTeX** is additionally required **only** for *live* mode and for **adding new references during revision** — it is **not** needed for the common flow *ingest an existing paper → revise → rebuild*.
-- **A large-context AI model (recommended).** `md-swarm` reads your whole manuscript in each agent; for long papers a **200K+ (ideally 1M) context window** avoids truncation.
-- **pandoc toolchain** — installed **automatically** by `setup_md_tools.ps1`, which downloads the **pinned** pandoc 3.9.0.2 + pandoc-crossref 0.3.24a from the official releases (the two versions must match — the installer handles it; **you download nothing**). ⚠️ **If GitHub downloads fail (common in restricted networks), you may need a proxy / VPN**; or pass `-Mirror https://<a-github-mirror>`.
 
 ### Install — let an AI do it
 
@@ -148,6 +182,14 @@ git clone https://github.com/pwya/md-paper.git
 > **"Read `INSTALL.md` in the md-paper folder and set up md-paper for me."**
 
 The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into Claude Code, install the pandoc toolchain, and register the protection hooks. You don't type the commands yourself. Prefer manual? INSTALL.md lists every command.
+
+### Requirements
+
+- **Windows + Microsoft Word** — ingest (`md-unpack`) reads Word citation fields/figures via COM. *(macOS not supported yet; everything after ingest is cross-platform.)*
+- **Python 3** and **PowerShell** (Windows-native 5.1 is fine).
+- **Zotero + the Zotero Word plugin** — to activate the live citations in your final `.docx` (press **Refresh** in Word). **Better BibTeX** is additionally required **only** for *live* mode and for **adding new references during revision** — it is **not** needed for the common flow *ingest an existing paper → revise → rebuild*.
+- **A large-context AI model (recommended).** `md-swarm` reads your whole manuscript in each agent; for long papers a **200K+ (ideally 1M) context window** avoids truncation.
+- **pandoc toolchain** — installed **automatically** by `setup_md_tools.ps1`, which downloads the **pinned** pandoc 3.9.0.2 + pandoc-crossref 0.3.24a from the official releases (the two versions must match — the installer handles it; **you download nothing**). ⚠️ **If GitHub downloads fail (common in restricted networks), you may need a proxy / VPN**; or pass `-Mirror https://<a-github-mirror>`.
 
 ### How to use
 
