@@ -1,6 +1,7 @@
 # md-paper
 
-# 🎯 md 系列技能 —— 解决「AI 到论文」的最后一公里 · *the last mile from AI to a finished paper*
+# md 系列技能 —— 解决「AI 到论文」的最后一公里 · 
+# *the last mile from AI to a finished paper*
 
 
 
