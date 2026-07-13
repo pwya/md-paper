@@ -37,14 +37,27 @@ HONEST LIMIT
   printed Write probe and shell apply probe through the assistant tools. Both
   must be DENIED. See dev-manual section 7.6.
 
+NON-CLAUDE-CODE HARNESSES (Codex / OpenCode / Hermes / plain terminal; added 2026-07-13)
+  The hooks are a Claude Code feature. In any other harness "hooks down" is the
+  STRUCTURAL state -- there was never a registration to wipe -- so hard-blocking
+  would only make the suite unusable there while adding zero protection.
+  Detection: Claude Code injects CLAUDECODE=1 and CLAUDE_CODE_ENTRYPOINT into
+  every tool-call shell (verified live 2026-07-13, Bash and PowerShell alike);
+  foreign harnesses set neither. When BOTH markers are absent and the hooks are
+  down, gate() prints a loud layer-1 notice and proceeds (exit 0) in every mode.
+  Fail-open hedge: if a future Claude Code stopped setting both markers, a wiped
+  CC session would degrade from block to that loud notice -- two independent
+  markers make that unlikely; revisit if CC changes its tool-call env.
+
 USAGE
   py preflight.py --mode block [--allow-no-hooks] [--no-heal]   # apply / md-unpack
   py preflight.py --mode warn                                   # md-build / md-triage
   py preflight.py --selftest                                    # unit checks, exit 0/1
   py probe_live_hooks.py --prepare                              # current-session live check
 EXIT
-  0 = env OK, or warn-mode, or dry-run, or --allow-no-hooks (proceed)
-  3 = hard block (protection hooks down, no override)
+  0 = env OK, or warn-mode, or dry-run, or --allow-no-hooks, or non-Claude-Code
+      harness (hooks structurally unavailable -> loud notice, layer-1 applies)
+  3 = hard block (protection hooks down inside Claude Code, no override)
 """
 import argparse, os, sys, subprocess
 
@@ -57,6 +70,18 @@ import argparse, os, sys, subprocess
 # The two PROTECTION hooks (the non-blocking dev-checklist hook is NOT required here).
 HOOK_NAMES = ('md_protect_hook', 'md_swarm_gate_hook')
 HOOK_FILES = ('md_protect_hook.ps1', 'md_swarm_gate_hook.ps1')
+
+# Claude Code injects these into every tool-call shell (Bash and PowerShell alike);
+# Codex / OpenCode / Hermes / plain terminals set neither. Consulted only when the
+# hooks are DOWN, to tell "wiped inside Claude Code" (block + heal) apart from
+# "structurally unavailable outside Claude Code" (loud notice + proceed on layer-1).
+CLAUDE_ENV_MARKERS = ('CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT')
+
+
+def in_claude_code(env=None):
+    """True iff the current process runs inside a Claude Code session (any marker set)."""
+    env = os.environ if env is None else env
+    return any(env.get(k) for k in CLAUDE_ENV_MARKERS)
 
 RESTART_HELP = (
     "  RESTART REQUIRED (the running session still uses the OLD hook snapshot):\n"
@@ -174,6 +199,11 @@ def gate(mode='block', context='', allow_no_hooks=False, dry=False, no_heal=Fals
     print_status(res)
     if res['ok']:
         print('  => protection hooks registered.')
+        if not in_claude_code():
+            print('     (NOTE: this session is NOT Claude Code -- registered hooks never fire')
+            print('      here. Layer-1 guards (single-writer apply + citation gates) are the')
+            print('      active protection. Never write manuscript.md directly.)')
+            return 0
         print('     (NOTE: REGISTRATION only -- not a proof THIS session fires them. A snapshot')
         print('      taken before the last hook change can still be stale.)')
         print('     For write-heavy md-swarm/md-iterate after cc-switch/provider changes, run:')
@@ -182,6 +212,19 @@ def gate(mode='block', context='', allow_no_hooks=False, dry=False, no_heal=Fals
         return 0
 
     ctx = (' [' + context + ']') if context else ''
+
+    if not in_claude_code():
+        print('')
+        print('--- non-Claude-Code session' + ctx + ': protection hooks unavailable (expected) ---')
+        print('    The two protection hooks are a Claude Code feature; this harness (Codex /')
+        print('    OpenCode / Hermes / plain terminal / ...) cannot register or fire them, so')
+        print('    this is the structural state here -- NOT a cc-switch wipe. Proceeding on')
+        print('    layer-1: apply_md_changeset.py is the ONLY writer of manuscript.md, with')
+        print('    citation / uniqueness / order gates built in.')
+        print('    IRON RULE for this session: never edit manuscript.md with any file tool;')
+        print('    route every change through the changeset pipeline (see AGENTS.md).')
+        return 0
+
     print('')
     print('!!! PROTECTION HOOKS ARE DOWN' + ctx + ' -- md-* second-layer safety is OFF. !!!')
     print('    Most likely: cc-switch overwrote ~/.claude/settings.json on a provider switch')
@@ -267,6 +310,44 @@ def run_selftest():
             print('  [FAIL] a missing hook file should give scripts_present=False'); fails += 1
         else:
             print('  [OK]   missing hook script detected')
+
+        # 6) in_claude_code: pure detector on explicit env dicts
+        if in_claude_code(env={}) or in_claude_code(env={'CLAUDECODE': ''}):
+            print('  [FAIL] empty env should not look like Claude Code'); fails += 1
+        elif not (in_claude_code(env={'CLAUDECODE': '1'})
+                  and in_claude_code(env={'CLAUDE_CODE_ENTRYPOINT': 'cli'})):
+            print('  [FAIL] either marker alone should count as Claude Code'); fails += 1
+        else:
+            print('  [OK]   in_claude_code detector (each marker alone; empty env rejected)')
+
+        # 7+8) gate() harness branch: hooks-down + block mode must yield 0 OUTSIDE
+        #      Claude Code (structural absence) and 3 INSIDE it (wipe). evaluate() is
+        #      swapped for a hooks-down fake so no real settings.json is touched;
+        #      no_heal=True keeps setup_hooks.ps1 out of it.
+        g = globals()
+        real_eval = g['evaluate']
+        saved_env = {k: os.environ.pop(k, None) for k in CLAUDE_ENV_MARKERS}
+        try:
+            g['evaluate'] = lambda hooks_dir=None, settings_file=None: {
+                'ok': False, 'registered': False, 'scripts_present': False,
+                'settings_path': '(selftest fake)', 'settings_exists': False,
+                'hooks_dir': d, 'missing': ['(selftest fake)']}
+            if gate(mode='block', context='selftest-nonCC', no_heal=True) != 0:
+                print('  [FAIL] hooks down OUTSIDE Claude Code should proceed (exit 0)'); fails += 1
+            else:
+                print('  [OK]   non-Claude-Code harness proceeds on layer-1 (exit 0)')
+            os.environ['CLAUDECODE'] = '1'
+            if gate(mode='block', context='selftest-CC', no_heal=True) != 3:
+                print('  [FAIL] hooks down INSIDE Claude Code should hard-block (exit 3)'); fails += 1
+            else:
+                print('  [OK]   Claude Code wipe still hard-blocks (exit 3)')
+        finally:
+            g['evaluate'] = real_eval
+            for k, v in saved_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
     finally:
         shutil.rmtree(d, ignore_errors=True)
 

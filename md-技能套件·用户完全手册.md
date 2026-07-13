@@ -220,9 +220,11 @@ powershell -ExecutionPolicy Bypass -File "%USERPROFILE%\.claude\skills\md-build\
 - **国内友好**：被墙时自动试镜像，全失败则打印手动下载步骤
 - **版本锁死**：pandoc 3.9.0.2 + crossref 0.3.24a，不会因自动更新导致静默失灵
 
-### 10. 🧩 以 Claude Code 技能形态构建
+### 10. 🧩 以开放技能标准构建，跨 AI 工具通用
 
-整套是五个 Claude Code 技能（`md-unpack`/`md-triage`/`md-swarm`/`md-iterate`/`md-build`），自然语言驱动、可自由组合：大改走 triage + swarm、小修走 iterate、随时 build 出稿。没有 GUI、没有要背的菜单——你只管说要干什么。
+整套是五个标准 Agent Skill（`md-unpack`/`md-triage`/`md-swarm`/`md-iterate`/`md-build`，[agentskills.io](https://agentskills.io) 开放格式），自然语言驱动、可自由组合：大改走 triage + swarm、小修走 iterate、随时 build 出稿。没有 GUI、没有要背的菜单——你只管说要干什么。
+
+为 **Claude Code** 深度打造（"保护钩子"这层物理防线仅 Claude Code 有）；同时兼容 **Codex / OpenCode / Hermes Agent** 等支持 Agent Skills 开放标准的工具——OpenCode 原生就会读 `~/.claude/skills`，Codex 用 `~/.codex/skills`，Hermes 用 `~/.hermes/skills`。非 Claude Code 环境没有钩子这层，防护由脚本内置闸门（单写者 apply + 引用不删）+ 仓库根 `AGENTS.md` 守则承担；`preflight.py` 会自动识别非 Claude Code 会话，提示而不拦路。装法见 `INSTALL.md` 第 2 步。
 
 ---
 

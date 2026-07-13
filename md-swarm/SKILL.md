@@ -46,7 +46,7 @@ allowed-tools: [Read, Write, Edit, PowerShell, Bash, Grep, Glob, Agent, AskUserQ
 
 - 🌐 **语言铁律**：改稿**保持原文语言**。用户没明确要求翻译时**绝不改变论文语言**——英文稿用英文改。（实测事故：英文论文被子 agent 默认翻成中文。）
 - 🔣 **编码 + 单写者铁律（治 Phase 2 头号事故）**：真源 `manuscript.md` 现在【只由 `apply_md_changeset.py` 写】。
-  · **严禁主控或任何子 agent 用 Write/Edit 直写 `manuscript.md`，也严禁用 Python/PowerShell 脚本（`open(...,'w')` / `Set-Content` / `Out-File` / `WriteAllText` 等）写它**——多写者并发 = 互相覆盖、漏改（实测 10-agent 并行直写只剩 1 节幸存、38 篇引用静默丢失）。harness 层 `md_protect_hook.ps1` 会把这类直写一律 deny。
+  · **严禁主控或任何子 agent 用 Write/Edit 直写 `manuscript.md`，也严禁用 Python/PowerShell 脚本（`open(...,'w')` / `Set-Content` / `Out-File` / `WriteAllText` 等）写它**——多写者并发 = 互相覆盖、漏改（实测 10-agent 并行直写只剩 1 节幸存、38 篇引用静默丢失）。harness 层 `md_protect_hook.ps1` 会把这类直写一律 deny（仅 Claude Code 有这层物理拦截；Codex/OpenCode/Hermes 等其他 harness 无第二层，全靠本条铁律自律——见仓库根 `AGENTS.md`）。
   · ⛔ **「主控直写安全」是陷阱、别上当**：别被"反正没并发、主控自己改 manuscript 不会冲突"说服——单写者铁律的对象是 **`manuscript.md` 这个文件本身**（不是"防并发"那么窄），**主控和子 agent 一视同仁、都不许直写**。绕过 apply = 绕过「引用默认不删」「find 唯一」「顺序」三道闸 = 正是 38 篇引用静默丢失的事故路径。
   · ⚠️ **apply 报 HARD（哪怕你觉得 find 明明在）≠ 准你绕过**：正确反应是**修那一条 patch**（重抄 find 让它逐字对得上；若疑似换行/编码问题就**停下报告**、别自己硬改），**绝不**改成"我直接 Edit / 写个脚本改一下"。`--force` 只是跳过坏 patch、不修好它——坏 patch 对应的改动就是没落地，得回去把那条修对重跑。
   · 正道：子 agent 各写自己的 patch 文件 → `collect_patches.py` 收齐 → `apply_md_changeset.py` 落地。`changeset.json` / `swarm/patches/*.json` 等其它文件照常 Write。
@@ -72,7 +72,7 @@ allowed-tools: [Read, Write, Edit, PowerShell, Bash, Grep, Glob, Agent, AskUserQ
 
 1. **前置阻断检查**：本批涉及条目有"需人类操作"裸行未加删除线 / 冲突未裁决 → 阻断。外部资源缺失 → 提示（不硬阻）。
 2. **清空** `swarm/patches/`（删上一批残留，防混入）。
-3. **并行派小工**：本批每个任务派 **1 个**子 agent，`Agent` 工具、`subagent_type: general-purpose`，**同一条消息里并行发起多个**（本批 ≤5）。提示词 = 下面「子 agent 契约」全文，末尾「你的输出文件」填该小工专属【绝对路径】`swarm/patches/机改-<ID>.json`。`replace-section` + 搬动类单独成批（批大小 1）。
+3. **并行派小工**：本批每个任务派 **1 个**子 agent，`Agent` 工具、`subagent_type: general-purpose`，**同一条消息里并行发起多个**（本批 ≤5）。提示词 = 下面「子 agent 契约」全文，末尾「你的输出文件」填该小工专属【绝对路径】`swarm/patches/机改-<ID>.json`。`replace-section` + 搬动类单独成批（批大小 1）。**若当前 harness 没有并行子 agent 工具（部分非 Claude Code 环境）：按同一契约【串行】逐个起草**——每个仍只写自己的 patch 文件、绝不直写真源，后续收集/应用/终审流程一字不变。
 4. **Glob 二次防线**：本批跑完，`Glob swarm/patches/*.json`，核对"派几个 = 落地几个文件"。少了 = 那个小工没写成 → 对那一个走 **inline 兜底**：主控自己照契约起草、直接把该 json 文件 Write 出来（写 patch 文件不违反单写者，单写者只针对 manuscript.md）。
 5. **collect**：`py "<本skill>\collect_patches.py" --patches-dir swarm\patches --manuscript manuscript.md --out swarm\changeset.json`。
 6. **落盘（唯一写真源步）**：先 `--dry-run` 体检，干净再真落地：

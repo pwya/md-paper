@@ -49,7 +49,7 @@ AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆
 
 ### 核心特性
 
-🔗 兼容 Zotero 活引用域 · 🖼️ 图/表/题注/注释纯文本 · 🔀 交叉引用自动编号 · 🐝 并行蜂群改稿 · 🛡️ 引用默认不删 · 📝 可 git diff 的 Markdown 真源 · 🔄 去 AI 味 · 🧮 OMML→LaTeX 公式 · 🧰 全局工具链 · 🧩 Claude Code 技能形态、可组合。
+🔗 兼容 Zotero 活引用域 · 🖼️ 图/表/题注/注释纯文本 · 🔀 交叉引用自动编号 · 🐝 并行蜂群改稿 · 🛡️ 引用默认不删 · 📝 可 git diff 的 Markdown 真源 · 🔄 去 AI 味 · 🧮 OMML→LaTeX 公式 · 🧰 全局工具链 · 🧩 开放 Agent Skills 标准——Claude Code / Codex / OpenCode / Hermes 通用。
 
 ### 安装——让 AI 替你装
 
@@ -61,18 +61,19 @@ AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆
   git clone https://github.com/pwya/md-paper.git
   ```
 
-**第二步:用 [VS Code](https://code.visualstudio.com/) 打开这个文件夹。** 打开 VS Code → 菜单 **File → Open Folder(打开文件夹)** → 选中你刚解压/克隆出来的 **`md-paper`** 文件夹。然后在里面开一个 [Claude Code](https://www.claude.com/product/claude-code) 会话。
+**第二步:用 [VS Code](https://code.visualstudio.com/) 打开这个文件夹。** 打开 VS Code → 菜单 **File → Open Folder(打开文件夹)** → 选中你刚解压/克隆出来的 **`md-paper`** 文件夹。然后在里面开一个 [Claude Code](https://www.claude.com/product/claude-code) 会话(或 Codex / OpenCode / Hermes Agent 等其他 AI 编程工具,均支持)。
 
 **第三步:让 AI 替你装。** 对 AI 说:
 
 > **"读一下 `INSTALL.md`,帮我把 md-paper 装好。"**
 
-AI 会照着 [INSTALL.md](INSTALL.md)(一份可执行的操作手册)把五个技能接进 Claude Code、装 pandoc 工具链、注册保护钩子,**你一条命令都不用自己敲**。想手动装,INSTALL.md 里也逐条列了命令。
+AI 会照着 [INSTALL.md](INSTALL.md)(一份可执行的操作手册)把五个技能接进你的 AI 工具(Claude Code / Codex / OpenCode / Hermes Agent 都行)、装 pandoc 工具链、注册保护钩子(Claude Code 专属的第二层物理防护,其他工具由 [AGENTS.md](AGENTS.md) 守则替代),**你一条命令都不用自己敲**。想手动装,INSTALL.md 里也逐条列了命令。
 
 ### 环境要求
 
 - **Windows + Microsoft Word** —— 摄取(`md-unpack`)靠 Word COM 读引用域/图。*(macOS 暂不支持;摄取之后全跨平台。)*
 - **Python 3** + **PowerShell**(Windows 自带 5.1 即可)。
+- **AI 编程工具** —— 为 **Claude Code** 深度打造(独享"保护钩子"这层物理防线);同时兼容支持 Agent Skills 开放标准的其他工具:**Codex / OpenCode / Hermes Agent** 等(OpenCode 原生就会读 `~/.claude/skills`,零额外配置)。非 Claude Code 环境的防护由脚本内置闸门 + 仓库根 [AGENTS.md](AGENTS.md) 守则承担,详见 [INSTALL.md](INSTALL.md)。
 - **Zotero + Zotero 的 Word 插件** —— 用来在最终 `.docx` 里**激活活引用**(Word 里点 **Refresh**)。**Better BibTeX** 只在 *live* 模式和**改稿时新增文献**才**额外必需**——常规流(摄取已有稿 → 改 → rebuild)**不需要**它。
 - **建议用大上下文 AI 模型。** `md-swarm` 每个 agent 都要读整篇稿子,长论文建议 **200K+(最好 1M)上下文窗口**,免得读不全被截断。
 - **pandoc 工具链** —— 由 `setup_md_tools.ps1` **自动安装**:从官方发布页下载**锁定版** pandoc 3.9.0.2 + crossref 0.3.24a(两者必须配套,脚本自动搞定,**你什么都不用下载/上传**)。⚠️ **国内网络往往下载不了 GitHub 上的 pandoc,可能需要开代理 / VPN**;也可以加 `-Mirror https://<镜像>` 走镜像。
@@ -185,7 +186,7 @@ Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rh
 
 ### Core features
 
-🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 built as composable Claude Code skills.
+🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 open Agent Skills standard — works in Claude Code / Codex / OpenCode / Hermes.
 
 ### Install — let an AI do it
 
@@ -197,18 +198,19 @@ Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rh
   git clone https://github.com/pwya/md-paper.git
   ```
 
-**Step 2 — Open the folder in [VS Code](https://code.visualstudio.com/).** In VS Code: **File → Open Folder** → pick the **`md-paper`** folder you just unzipped/cloned. Then start a [Claude Code](https://www.claude.com/product/claude-code) session inside it.
+**Step 2 — Open the folder in [VS Code](https://code.visualstudio.com/).** In VS Code: **File → Open Folder** → pick the **`md-paper`** folder you just unzipped/cloned. Then start a [Claude Code](https://www.claude.com/product/claude-code) session inside it (or Codex / OpenCode / Hermes Agent — all supported).
 
 **Step 3 — Let an AI install it.** Tell your AI:
 
 > **"Read `INSTALL.md` and set up md-paper for me."**
 
-The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into Claude Code, install the pandoc toolchain, and register the protection hooks. **You don't type a single command yourself.** Prefer manual? INSTALL.md lists every command.
+The AI follows [INSTALL.md](INSTALL.md) — an executable runbook — to link the five skills into your AI tool (Claude Code / Codex / OpenCode / Hermes Agent all work), install the pandoc toolchain, and register the protection hooks (a Claude Code-only second layer; other tools get the [AGENTS.md](AGENTS.md) rules instead). **You don't type a single command yourself.** Prefer manual? INSTALL.md lists every command.
 
 ### Requirements
 
 - **Windows + Microsoft Word** — ingest (`md-unpack`) reads Word citation fields/figures via COM. *(macOS not supported yet; everything after ingest is cross-platform.)*
 - **Python 3** and **PowerShell** (Windows-native 5.1 is fine).
+- **AI coding tool** — built first for **Claude Code** (which alone gets the physical protection-hook layer); also compatible with any tool speaking the open Agent Skills standard: **Codex / OpenCode / Hermes Agent**, etc. (OpenCode natively reads `~/.claude/skills` — zero extra setup). Outside Claude Code, protection falls to the scripts' built-in gates plus the [AGENTS.md](AGENTS.md) rules; see [INSTALL.md](INSTALL.md).
 - **Zotero + the Zotero Word plugin** — to activate the live citations in your final `.docx` (press **Refresh** in Word). **Better BibTeX** is additionally required **only** for *live* mode and for **adding new references during revision** — it is **not** needed for the common flow *ingest an existing paper → revise → rebuild*.
 - **A large-context AI model (recommended).** `md-swarm` reads your whole manuscript in each agent; for long papers a **200K+ (ideally 1M) context window** avoids truncation.
 - **pandoc toolchain** — installed **automatically** by `setup_md_tools.ps1`, which downloads the **pinned** pandoc 3.9.0.2 + pandoc-crossref 0.3.24a from the official releases (the two versions must match — the installer handles it; **you download nothing**). ⚠️ **If GitHub downloads fail (common in restricted networks), you may need a proxy / VPN**; or pass `-Mirror https://<a-github-mirror>`.
