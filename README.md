@@ -6,43 +6,32 @@
 
 🌐 [**中文**](#中文说明) · [English](#english)
 
-> **用 AI 改论文——不毁任何一个 Zotero 引用、图、表、交叉引用。** / **Revise your academic paper with AI — without breaking a single Zotero citation, figure, table, or cross-reference.**
-> Word 摄取 → 改一份 Markdown 真源 → 编回带活引用的 Word。一套 [Claude Code](https://www.claude.com/product/claude-code) 技能。
-
-> ⚠️ **v0.1 · 首个公开测试版。** 已在作者真实投稿中反复验证,但初次面向他人的机器。请先读[已知限制](#已知限制)。 / **Early public (beta) release** — read [Known Limitations](#known-limitations) first.
-
 <a id="中文说明"></a>
 ## 中文说明
 
-### 当前 AI 辅助学术写作的七大痛点
-
-做这套工具链之前,我们和几十位经济学/管理学/社会学博士生聊过"用 AI 写论文到底卡在哪"。下面是大家反复提到的痛点——**每一条,md-paper 都恰好能解决**。
+### 当前 AI 辅助学术写作的六大痛点
 
 **痛点 1:网页端 AI 的"对话—复制—粘贴"死循环。**
 在 ChatGPT / Claude 网页端和 AI 对话改论文,看起来省了思考,实则陷入更耗精力的体力活:**每改一段就要复制粘贴一轮**——"把这一段改得更学术"→ 等回复 → 选中 → Ctrl+C → 切回 Word → Ctrl+V → 格式崩了 → 调格式 → 下一段……一个下午过去,真正动脑的时间不到半小时。
 > ✅ **md-paper:意见批量扔进去,AI 自动逐条改到 Markdown 真源里**,你只在人工闸确认时动一次脑,其余体力活全免。
 
-**痛点 2:绝大多数自动修改工具只支持 LaTeX,不支持 Word。**
-计算机/数学/物理领域有大量 LaTeX + AI 的写作工具链,但经济学、管理学、社会学等社会科学**主流投稿格式是 Word**。自己想好的各种排版、表格、题注、样式,没办法通过多 Agent 流水线实现——要么手搓 Word,要么被迫学 LaTeX 换赛道。
-> ✅ **md-paper:Markdown 写作 + pandoc 编译出 Word**。你在纯文本里写,最终一键生成格式完美的 .docx。不需要学 LaTeX,不需要手搓 Word COM。
+**痛点 2:一次只能改一条意见,无法批量多 Agent 修改。**
+你和网页端 AI 对话时,一次只能说一件事:"帮我把引言改得更简洁"。说完等回复,再粘贴,再说下一件。**就算你自己完全理解了 30 条审稿意见,把它们逐一打字成 prompt 再逐一粘贴结果,就已经耗尽了一整天**——根本没有"批量多 Agent 并行修改"的可能。
+> ✅ **md-paper:蜂群模式(Swarm)**——30 条审稿意见扔进去,AI 自动分类、去重、合并(`md-triage`)→ 你一次性确认 → **并行**派多个 agent 起草、确定性脚本**串行落盘**到真源(`md-swarm`)。从"一次改一条"升级到"一次改一整轮审稿"。
 
 **痛点 3:Word 里的图、表、题注、注释、Zotero 域——AI 一改全乱。**
 Word 文档里嵌着丰富的学术基础设施:图的题注("Figure 1: …")、表的题注和注释("Note: …")、Zotero 引用域、交叉引用书签……用网页端 AI 改完粘贴回 Word 时,**这些全部丢失或错乱**。更致命的是 Zotero Refresh 一下,之前精心调整的引用格式全部打回原形。
 > ✅ **md-paper:出稿自带活 Zotero 域**(Word 里 Refresh 即用),**图表自动编号 + 交叉引用永远不错**,表下注释原生保留。纯文本真源改不坏。
 
-**痛点 4:一次只能改一条意见,无法批量多 Agent 修改。**
-你和网页端 AI 对话时,一次只能说一件事:"帮我把引言改得更简洁"。说完等回复,再粘贴,再说下一件。**就算你自己完全理解了 30 条审稿意见,把它们逐一打字成 prompt 再逐一粘贴结果,就已经耗尽了一整天**——根本没有"批量多 Agent 并行修改"的可能。
-> ✅ **md-paper:蜂群模式(Swarm)**——30 条审稿意见扔进去,AI 自动分类、去重、合并(`md-triage`)→ 你一次性确认 → **并行**派多个 agent 起草、确定性脚本**串行落盘**到真源(`md-swarm`)。从"一次改一条"升级到"一次改一整轮审稿"。
-
-**痛点 5:审稿意见太笼统,自己生成初稿耗时耗力。**
+**痛点 4:审稿意见太笼统,自己生成初稿耗时耗力。**
 "请把文章中的第一人称改为客观第三人称"、"减少语法纰漏"、"提高文献综述的覆盖面"……这类审稿意见**理解起来不难,但执行起来极其耗时**:你要通读全文找每一处 I/we/our,逐一替换;要逐句检查语法;要翻遍文献补漏。审稿人一句话,你要干一整天。
 > ✅ **md-paper:去 AI 味 + 语言铁律内嵌在子 Agent 契约里**。笼统意见交给 AI 逐条落地——"全文去第一人称"就是一个 swarm 任务,几分钟改完,你只做最终确认。
 
-**痛点 6:改稿过程中引用静默丢失,发现时已晚。**
+**痛点 5:改稿过程中引用静默丢失,发现时已晚。**
 这是开发过程中实际测量到的**真实事故类型**:AI 改稿时会"顺手"删掉它觉得不重要的引用、拆散成组引用 `[@a; @b; @c]`、把 citekey 改错一个字母——等你发现时已经过了好几轮修改,根本追溯不到是哪一步丢的。
 > ✅ **md-paper:引用默认不删硬闸**——补丁模式下少一条引用直接拒写;**引用体检**——改完后自动列出每一条被丢的 citekey、被拆的引用组、无定义的交叉引用。图、表、公式(带编号的)也一样,每个改稿批次都被数着。
 
-**痛点 7:改完的稿子读起来像 AI 写的。**
+**痛点 6:改完的稿子读起来像 AI 写的。**
 AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆砌、破折号泛滥、读起来不像人写的。期刊审稿人越来越容易识别 AI 生成文本,这对投稿是致命伤。
 > ✅ **md-paper:七条去 AI 味铁律**内嵌在改稿流程里——少修辞、短句、打破工整、降正式度、保信息、少破折号、全覆盖。只改"怎么说",不改"说什么"。
 
@@ -156,35 +145,29 @@ flowchart LR
 
 [⬆ 回到顶部 / back to top](#中文说明)
 
-### The seven pain points of AI-assisted academic writing
-
-Before building this, we talked to dozens of economics / management / sociology PhD students about where "writing papers with AI" actually breaks down. These are the pain points they kept raising — **md-paper solves every one.**
+### The six pain points of AI-assisted academic writing
 
 **Pain 1 — The web-AI "chat → copy → paste" death loop.**
 Revising a paper by chatting with ChatGPT / Claude in the browser looks like it saves thinking, but it traps you in worse manual labor: **every paragraph is a copy-paste round** — "make this more academic" → wait → select → Ctrl+C → back to Word → Ctrl+V → formatting broke → fix it → next paragraph… An afternoon gone, under 30 minutes of real thinking.
 > ✅ **md-paper: drop the comments in, AI applies them one by one to the Markdown source.** You think once, at the approval gate; the grunt work is gone.
 
-**Pain 2 — Most auto-revision tools are LaTeX-only, not Word.**
-CS / math / physics have rich LaTeX + AI pipelines, but economics, management, and sociology **submit in Word**. Your layout, tables, captions, and styles can't ride a multi-agent pipeline — you either hand-code Word or are forced to switch to LaTeX.
-> ✅ **md-paper: write Markdown, compile to Word with pandoc.** You write plain text; one command produces a perfectly formatted `.docx`. No LaTeX, no hand-coding Word COM.
+**Pain 2 — One comment at a time; no batch, no multi-agent.**
+Chatting with a browser AI, you can only say one thing at a time: "make the intro more concise." Even if you fully understand 30 reviewer comments, **typing each into a prompt and pasting each result back already burns a full day** — parallel multi-agent revision is simply impossible.
+> ✅ **md-paper: Swarm mode** — drop in 30 comments, AI classifies/dedups/merges them (`md-triage`) → you approve once → **parallel** agents draft, a deterministic script lands them **serially** into the source (`md-swarm`). From "one comment at a time" to "one whole review round at a time."
 
 **Pain 3 — Figures, tables, captions, notes, Zotero fields all scramble the instant AI touches Word.**
 A Word manuscript embeds rich academic infrastructure: figure captions, table captions and notes, Zotero citation fields, cross-reference bookmarks. Paste browser-AI output back into Word and **it's all lost or scrambled** — and one Zotero *Refresh* resets every citation you carefully adjusted.
 > ✅ **md-paper: output carries live Zotero fields** (Refresh in Word), **auto-numbered figures/tables + cross-references that never break**, table notes preserved. A plain-text source can't be scrambled.
 
-**Pain 4 — One comment at a time; no batch, no multi-agent.**
-Chatting with a browser AI, you can only say one thing at a time: "make the intro more concise." Even if you fully understand 30 reviewer comments, **typing each into a prompt and pasting each result back already burns a full day** — parallel multi-agent revision is simply impossible.
-> ✅ **md-paper: Swarm mode** — drop in 30 comments, AI classifies/dedups/merges them (`md-triage`) → you approve once → **parallel** agents draft, a deterministic script lands them **serially** into the source (`md-swarm`). From "one comment at a time" to "one whole review round at a time."
-
-**Pain 5 — Vague comments take forever to execute.**
+**Pain 4 — Vague comments take forever to execute.**
 "Change first person to objective third person," "reduce grammatical slips," "broaden the literature review" — **easy to understand, brutally slow to do**: read the whole paper for every I/we/our and replace each; check every sentence's grammar; hunt down missing references. One reviewer sentence, one full day of work.
 > ✅ **md-paper: de-AI rules + language rules are baked into the agent contract.** A vague comment becomes an executable task — "remove all first person" is a single swarm job, done in minutes; you just approve.
 
-**Pain 6 — Citations vanish silently mid-revision, discovered too late.**
+**Pain 5 — Citations vanish silently mid-revision, discovered too late.**
 A **real, measured failure type** from development: while revising, AI quietly drops a citation it deems unimportant, splits a group `[@a; @b; @c]`, or mistypes one letter of a citekey — and by the time you notice, several rounds have passed and it's untraceable.
 > ✅ **md-paper: a never-drop-a-citation hard gate** — in patch mode, losing one citation is hard-rejected; **a ref-check** lists every dropped citekey, split group, and dangling cross-reference after each revision. Figures, tables, and (numbered) equations are counted every batch too.
 
-**Pain 7 — The revised paper reads like a machine wrote it.**
+**Pain 6 — The revised paper reads like a machine wrote it.**
 Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rhetoric, em-dashes everywhere. Reviewers increasingly spot machine-generated text, and that's fatal for a submission.
 > ✅ **md-paper: seven de-AI rules** baked into the flow — less rhetoric, short sentences, break the symmetry, lower the formality, keep the information, fewer em-dashes, cover everything. Change only *how* it's said, never *what*.
 
