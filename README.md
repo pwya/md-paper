@@ -101,13 +101,22 @@ flowchart LR
     D -->|"AI 改一两处"| K["🎯 md-iterate"]
     D -->|"一大堆乱意见"| T["🗂️ md-triage<br/>整理→你确认"]
     T --> F["🐝 md-swarm<br/>AI 并行改稿"]
+    F -.->|"可选:继续用 md-iterate 微调"| K
     E --> G["📤 md-build<br/>编译"]
     K --> G
     F --> G
     G --> H["📗 Word .docx"]
 ```
 
+**顺序是活的**——除了「`md-unpack` 永远第一步、`md-build` 永远最后一步」,中间的技能你可以**按自己的需求自由组合、反复使用**。三种典型顺序:
+
+1. **小修**:`md-unpack` → 手改 `manuscript.md` → `md-build`
+2. **单点 AI 润色**:`md-unpack` → `md-iterate` → `md-build`
+3. **大改**:`md-unpack` → `md-triage` → `md-swarm` → *(可选:再用 `md-iterate` 微调几处)* → `md-build`
+
 1. **`md-unpack`** —— *摄取。* Word `.docx` → `manuscript.md`(Markdown 真源)。**永远第一步。**
+
+   > 💡 **为什么必须先转成 Markdown?** Word 是发展了几十年的庞然大物,`.docx` 内部是层层嵌套的祖传 XML——说"屎山"毫不夸张:图、表、题注、引用域、书签全绞在一起。目前市面上几乎所有工具都难以直接在 Word 里自动处理上面那些痛点(Anthropic 与 Copilot 的 Word 插件、Kimi 与 Gemini 的 Word 程序等同样如此)。唯一走得通的路就是:**先把 Word 转换成 AI 真正读得懂的 Markdown,改完再转换回去**——而且 Markdown 纯文本还**省 token**,同一篇论文的处理成本远低于直接塞 docx。
 2. **`md-triage`** —— *整理。* 一堆修订意图 → 你审核确认的清单。*(仅大改。)*
 3. **`md-swarm`** —— *批量改。* 多 AI agent 并行、引用安全地落地清单。*(仅大改。)*
 4. **`md-iterate`** —— *润色单段*。*(小修。)*
@@ -125,6 +134,20 @@ flowchart LR
 ### 许可
 
 工作流代码 [Apache-2.0](LICENSE) © 2026 潘王雨昂 (Yuang Panwang)。第三方:pandoc 与 pandoc-crossref(GPL-2.0)安装时下载、不随仓库分发;内置 Zotero/Lua 过滤器为 MIT——见 [NOTICE](NOTICE)。
+
+### 贡献者
+
+[潘王雨昂](https://panwangyuang.com) · [张宇](https://yuzhang.net)
+
+### 关注我们
+
+欢迎关注微信公众号:**计算公共治理** · **人类有趣行为实验室**
+
+<p>
+  <img src="assets/wechat-computational-public-governance.jpg" alt="微信公众号:计算公共治理" width="220">
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/wechat-fun-human-behavior-lab.jpg" alt="微信公众号:人类有趣行为实验室" width="220">
+</p>
 
 ---
 
@@ -220,13 +243,22 @@ flowchart LR
     D -->|"one passage, with AI"| K["🎯 md-iterate"]
     D -->|"a pile of comments"| T["🗂️ md-triage<br/>organize → you approve"]
     T --> F["🐝 md-swarm<br/>parallel AI revision"]
+    F -.->|"optional: fine-tune with md-iterate"| K
     E --> G["📤 md-build<br/>compile"]
     K --> G
     F --> G
     G --> H["📗 Word .docx"]
 ```
 
+**The order is flexible** — apart from "`md-unpack` always first, `md-build` always last", you can **combine and repeat the middle skills however your revision demands**. Three typical orders:
+
+1. **Tiny fix:** `md-unpack` → hand-edit `manuscript.md` → `md-build`
+2. **Single-passage AI polish:** `md-unpack` → `md-iterate` → `md-build`
+3. **Major revision:** `md-unpack` → `md-triage` → `md-swarm` → *(optional: fine-tune a few spots with `md-iterate`)* → `md-build`
+
 1. **`md-unpack`** — *ingest.* Word `.docx` → `manuscript.md` (Markdown source of truth). **Run first.**
+
+   > 💡 **Why convert to Markdown first?** Word has evolved for decades; a `.docx` is a mountain of deeply nested legacy XML — figures, tables, captions, citation fields, and bookmarks all tangled together. Almost no tool on the market can automate the pain points above directly inside Word (the Anthropic and Copilot Word add-ins, Kimi's and Gemini's Word products included). The only path that works: **convert Word into Markdown that AI can genuinely read, revise there, then convert back** — and plain-text Markdown also **saves tokens**, so processing the same paper costs far less than feeding it docx.
 2. **`md-triage`** — *organize.* A pile of revision intents → a checklist you approve. *(Big revisions only.)*
 3. **`md-swarm`** — *batch-revise.* Parallel AI agents apply the approved checklist, citation-safe. *(Big revisions only.)*
 4. **`md-iterate`** — *polish one passage* with AI. *(Small edits.)*
@@ -244,3 +276,17 @@ flowchart LR
 ### License
 
 Workflow code [Apache-2.0](LICENSE) © 2026 Yuang Panwang (潘王雨昂). Third-party: pandoc & pandoc-crossref (GPL-2.0) are *downloaded at setup*, not redistributed here; bundled Zotero/Lua filters are MIT — see [NOTICE](NOTICE).
+
+### Contributors
+
+[Yuang Panwang 潘王雨昂](https://panwangyuang.com) · [Yu Zhang 张宇](https://yuzhang.net)
+
+### Follow us
+
+WeChat official accounts: **计算公共治理** (Computational Public Governance) · **人类有趣行为实验室** (Fun Human Behavior Lab)
+
+<p>
+  <img src="assets/wechat-computational-public-governance.jpg" alt="WeChat: 计算公共治理" width="220">
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/wechat-fun-human-behavior-lab.jpg" alt="WeChat: 人类有趣行为实验室" width="220">
+</p>
