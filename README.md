@@ -123,6 +123,8 @@ flowchart LR
 
 ### 许可
 
+📝 每个版本改了什么:见 [更新日志 CHANGELOG.md](CHANGELOG.md)。
+
 工作流代码 [Apache-2.0](LICENSE) © 2026 潘王雨昂 (Yuang Panwang)。第三方:pandoc 与 pandoc-crossref(GPL-2.0)安装时下载、不随仓库分发;内置 Zotero/Lua 过滤器为 MIT——见 [NOTICE](NOTICE)。
 
 ### 贡献者
@@ -259,6 +261,8 @@ flowchart LR
 - *Other minor limitations (citation providers, page locators, escaping edge cases, floating figures, legacy AxMath equations) are not listed here — see the [User Guide](md-技能套件·用户完全手册.md).*
 
 ### License
+
+📝 What changed in each version: see the [CHANGELOG](CHANGELOG.md).
 
 Workflow code [Apache-2.0](LICENSE) © 2026 Yuang Panwang (潘王雨昂). Third-party: pandoc & pandoc-crossref (GPL-2.0) are *downloaded at setup*, not redistributed here; bundled Zotero/Lua filters are MIT — see [NOTICE](NOTICE).
 
