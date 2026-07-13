@@ -9,7 +9,7 @@
 <a id="中文说明"></a>
 ## 中文说明
 
-### 当前 AI 辅助学术写作的六大痛点
+### 当前 AI 辅助学术写作的七大痛点
 
 **痛点 1:网页端 AI 的"对话—复制—粘贴"死循环。**
 在 ChatGPT / Claude 网页端和 AI 对话改论文,看起来省了思考,实则陷入更耗精力的体力活:**每改一段就要复制粘贴一轮**——"把这一段改得更学术"→ 等回复 → 选中 → Ctrl+C → 切回 Word → Ctrl+V → 格式崩了 → 调格式 → 下一段……一个下午过去,真正动脑的时间不到半小时。
@@ -35,6 +35,10 @@ Word 文档里嵌着丰富的学术基础设施:图的题注("Figure 1: …")、
 AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆砌、破折号泛滥、读起来不像人写的。期刊审稿人越来越容易识别 AI 生成文本,这对投稿是致命伤。
 > ✅ **md-paper:七条去 AI 味铁律**内嵌在改稿流程里——少修辞、短句、打破工整、降正式度、保信息、少破折号、全覆盖。只改"怎么说",不改"说什么"。
 
+**痛点 7:AI 改稿无人复核,错了不知道错在哪。**
+AI 改稿最大的风险不是改得不好,而是改错了你不知道——一条引用被悄悄删掉、一段话被改窜了意思、前后术语对不上,等终审才发现已经过了好几轮。网页端 AI 给你一段结果,你只能接受或粘贴回去重问,中间没有任何“复核”环节,更没人替你盯着每一条改动。
+> ✅ **md-paper:三省制 + 多道校验**——借鉴唐代三省“中书起草、门下审核、尚书执行”之意,把改稿拆成**提(整理意图)/ 行(起草)/ 审(只读审计)**三权分立、互不兼任。改稿全程跑**多道校验**:每个批次自动体检引用有没有丢、有没有凭空编造、有没有真正落地;全部改完后再跑两道**只读终审**——D 审计逐条核“做没做、做对没”,E 复查通读全文查前后矛盾。AI 只起草、只出报告,**最终裁决权始终在你手里**。
+
 ### 一表胜千言
 
 | 传统改稿（手搓 Word） | md-paper（Markdown 真源 + AI + pandoc） |
@@ -46,10 +50,17 @@ AI 重度润色后的论文有一股"AI 味"——句子工整对称、修辞堆
 | 😫 改到一半发现引用对不上 | ✅ **引用默认不删硬闸** |
 | 😫 网页端复制粘贴到手软 | ✅ **全流程在编辑器内**,零粘贴 |
 | 😫 改完一股 AI 味被审稿人识破 | ✅ **七条去 AI 味铁律** |
+| 😫 AI 改稿无人复核,错了不知错在哪 | ✅ **三省制 + 多道校验**,两道只读终审 |
 
 ### 核心特性
 
-🔗 兼容 Zotero 活引用域 · 🖼️ 图/表/题注/注释纯文本 · 🔀 交叉引用自动编号 · 🐝 并行蜂群改稿 · 🛡️ 引用默认不删 · 📝 可 git diff 的 Markdown 真源 · 🔄 去 AI 味 · 🧮 OMML→LaTeX 公式 · 🧰 全局工具链 · 🧩 开放 Agent Skills 标准——Claude Code / Codex / OpenCode / Hermes 通用。
+🔗 兼容 Zotero 活引用域 · 🖼️ 图/表/题注/注释纯文本 · 🔀 交叉引用自动编号 · 🐝 并行蜂群改稿 · 🛡️ 引用默认不删 · 📝 可 git diff 的 Markdown 真源 · 🔄 去 AI 味 · 🧮 OMML→LaTeX 公式 · 🧰 全局工具链 · 🧩 开放 Agent Skills 标准——Claude Code / Codex / OpenCode / Hermes 通用 · 🏛️ 三省制(提/行/审分权)· 多道校验审计。
+
+### 我们的立场:AI 是助手,不是作者
+
+md-paper 的流程很长——摄取、整理、起草、审计、出稿,每一步都有**人工闸**:意见要你确认才落地、改动要你审阅才通过、引用增删要你授权。把整个流程走完,稿子本质上还是**你自己的东西**。AI 省去的是打字、粘贴、调格式、逐条发命令这些体力活,但**该你动脑的地方一个没少**:审稿意见怎么理解、改到什么程度、引用留哪些删哪些、终稿定不定稿,全是你的决策。
+
+我们的立场:**AI 只是辅助,让改稿更便捷,但不能代替作者本人的思维与原创。** 工具替你跑腿,不替你思考。
 
 ### 安装——让 AI 替你装
 
@@ -148,7 +159,7 @@ flowchart LR
 
 [⬆ 回到顶部 / back to top](#中文说明)
 
-### The six pain points of AI-assisted academic writing
+### The seven pain points of AI-assisted academic writing
 
 **Pain 1 — The web-AI "chat → copy → paste" death loop.**
 Revising a paper by chatting with ChatGPT / Claude in the browser looks like it saves thinking, but it traps you in worse manual labor: **every paragraph is a copy-paste round** — "make this more academic" → wait → select → Ctrl+C → back to Word → Ctrl+V → formatting broke → fix it → next paragraph… An afternoon gone, under 30 minutes of real thinking.
@@ -174,6 +185,10 @@ A **real, measured failure type** from development: while revising, AI quietly d
 Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rhetoric, em-dashes everywhere. Reviewers increasingly spot machine-generated text, and that's fatal for a submission.
 > ✅ **md-paper: seven de-AI rules** baked into the flow — less rhetoric, short sentences, break the symmetry, lower the formality, keep the information, fewer em-dashes, cover everything. Change only *how* it's said, never *what*.
 
+**Pain 7 - AI revision with no review; errors hide until too late.**
+The real risk of AI revision is not bad writing - it is wrong writing you never notice: a citation silently dropped, a passage whose meaning got twisted, terminology that no longer matches. By the time you catch it at final review, several rounds have passed. A browser AI hands you a result and you either accept it or paste it back and ask again - there is no "review" step, no one watching each change.
+> ✅ **md-paper: three-province separation + multi-pass auditing.** Borrowing the Tang-dynasty *Three Departments* (draft / review / execute), revision is split into three non-overlapping roles: **propose** (organize intent) / **execute** (draft) / **audit** (read-only review). The whole run goes through **multiple checkpoints**: every batch auto-checks whether citations were dropped, fabricated, or actually landed; once all edits are done, two **read-only final audits** run - D audits each comment ("done? done right?"), E reads the full text for internal contradictions. AI only drafts and reports; **the final call is always yours**.
+
 ### One table, a thousand words
 
 | Editing Word by hand | md-paper (Markdown source + AI + pandoc) |
@@ -185,10 +200,17 @@ Heavily AI-polished prose has an "AI smell" — symmetric sentences, piled-up rh
 | 😫 You discover a lost citation three rounds too late | ✅ **Never-drop-a-citation hard gate** |
 | 😫 Endless copy-paste between browser and Word | ✅ **Everything in the editor** — zero pasting |
 | 😫 The result reeks of "AI writing" | ✅ **Seven de-AI rules** lower the machine-written signal |
+| 😫 AI revises with no review; errors hide | ✅ **Three-province separation + multi-pass audits**, two read-only final reviews |
 
 ### Core features
 
-🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 open Agent Skills standard — works in Claude Code / Codex / OpenCode / Hermes.
+🔗 Zotero-native live citation fields · 🖼️ figures/tables/captions/notes as plain text · 🔀 auto-numbered cross-references · 🐝 parallel swarm revision · 🛡️ never-drop-a-citation guard · 📝 git-diffable Markdown source · 🔄 de-AI humanizer · 🧮 OMML→LaTeX equations · 🧰 one shared toolchain · 🧩 open Agent Skills standard — works in Claude Code / Codex / OpenCode / Hermes · 🏛️ three-province separation (propose/execute/audit) + multi-pass auditing.
+
+### Our stance: AI is an assistant, not the author
+
+The md-paper pipeline is long - ingest, organize, draft, audit, compile - and every stage has a **human gate**: comments land only after you confirm, edits pass only after you review, citation changes need your authorization. Walk the whole pipeline and the manuscript is still **fundamentally yours**. What AI removes is the typing, pasting, format-fixing, and issuing commands one by one; **every place that needs your brain is still there**: how to read the reviewer comments, how far to go, which citations to keep or cut, whether the final draft is final - all your calls.
+
+In one line: **AI is just an aid - it makes revision more convenient, but it cannot replace the author's own thinking and originality.** The tool runs your errands; it does not think for you.
 
 ### Install — let an AI do it
 
