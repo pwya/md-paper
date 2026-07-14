@@ -12,7 +12,7 @@ Rewrites manuscript.md in place (backup -> manuscript_provisional.md), writes bu
 --manual: optional {"provkey":"realkey",...} for items not in the export.
 """
 import json, re, io, sys, os, unicodedata, argparse
-from _recon import rewrite_citekeys, sync_citemap   # shared rewrite + citemap-sync (DRY, see _recon.py)
+from _recon import reconcile_manuscript, sync_citemap   # shared rewrite + citemap-sync (DRY, see _recon.py)
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 ap = argparse.ArgumentParser()
 ap.add_argument('--bbt-export', required=True); ap.add_argument('--references', required=True)
@@ -22,10 +22,6 @@ WD = os.path.dirname(os.path.abspath(a.manuscript)); BD = os.path.join(WD,'build
 
 bbt  = json.load(open(a.bbt_export, encoding='utf-8'))
 mine = json.load(open(a.references, encoding='utf-8'))
-prov_backup = a.manuscript.replace('.md','_provisional.md')
-src = prov_backup if os.path.exists(prov_backup) else a.manuscript
-md  = open(src, encoding='utf-8').read()
-
 def ndoi(d):
     if not d: return None
     return re.sub(r'^https?://(dx\.)?doi\.org/','',str(d).lower().strip()) or None
@@ -62,9 +58,7 @@ if a.manual and os.path.exists(a.manual):
             prov_to_real[prov]=real; report.append((prov,real,'manual',''))
     unmatched = [u for u in unmatched if u[0] not in prov_to_real]
 
-new_md = rewrite_citekeys(md, prov_to_real)   # longest-first + lookahead + prov==real skip (see _recon.py)
-if not os.path.exists(prov_backup): open(prov_backup,'w',encoding='utf-8').write(md)
-open(a.manuscript,'w',encoding='utf-8').write(new_md)
+new_md, prov_backup = reconcile_manuscript(a.manuscript, prov_to_real)
 # keep build/citemap.tsv in sync (see reconcile_live.py): -Mode rebuild matches by these
 # provisional keys; if manuscript.md moves to real keys but the citemap stays provisional,
 # rebuild silently matches nothing. Rewrite the provisional_citekey column for reconciled keys.

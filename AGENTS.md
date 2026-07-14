@@ -1,6 +1,6 @@
 # AGENTS.md — md-paper rules for AI agents · 跨工具代理守则
 
-> 中文速览:这是 md-paper 给【任何】AI 编程代理(Codex / OpenCode / Hermes Agent / Claude Code / …)的工作守则。Claude Code 用户由技能 + 保护钩子自动获得同等约束;**其他工具没有钩子这层物理拦截,下面的铁律就是你的"钩子"**。
+> 中文速览:这是 md-paper 给【任何】AI 编程代理(Codex / OpenCode / Hermes Agent / Claude Code / …)的工作守则。Claude Code 有成熟保护钩子，Codex / OpenCode 可安装兼容适配层；**无论钩子是否存在，下面铁律始终是第一层约束**。
 
 ## What this repo is
 
@@ -11,7 +11,7 @@ md-paper revises Word manuscripts through a Markdown source of truth (`manuscrip
 - **Opened this repo to install?** Follow [INSTALL.md](INSTALL.md) step by step — it covers Claude Code, Codex, OpenCode, Hermes and generic agents.
 - **Working on a paper project that uses md-paper?** The rules below are binding in every session.
 
-## Iron rules — these stand in for Claude Code's protection hooks
+## Iron rules — binding even when a harness hook is unavailable or incomplete
 
 1. **Never write `manuscript.md` directly.** Not with a file-edit tool, not with a script (`open(...,'w')`, `Set-Content`, `Out-File`, …). The ONLY writer is `md-swarm/apply_md_changeset.py` (`--dry-run` → apply → verify). In Claude Code a hook physically denies stray writes; in your harness nothing will stop you — so don't. (Measured incident: parallel direct writes left 1 surviving section and silently lost 38 citations.)
 2. **Citations are load-bearing.** Never delete or rewrite `[@citekey]` marks while editing prose — the apply gate refuses patches that drop citations; don't route around it. Never invent new keys that imitate existing ones: a manuscript full of `[@authorYear]`-looking keys may be an unreconciled *provisional* namespace, and imitation = fabrication.
@@ -23,5 +23,5 @@ md-paper revises Word manuscripts through a Markdown source of truth (`manuscrip
 
 - **Skills discovery**: Codex reads `~/.codex/skills`; OpenCode natively reads `~/.claude/skills` (and `~/.config/opencode/skills`); Hermes Agent reads `~/.hermes/skills`. No skills mechanism at all? Just open `<skill>/SKILL.md` and follow it — they are plain Markdown runbooks. Install/linking: [INSTALL.md](INSTALL.md) Step 2.
 - **No parallel sub-agent tool?** Run md-swarm's drafting phase serially — one entry at a time, same patch contract, each draft still writes only its own `swarm/patches/*.json`. Collection / apply / verify are deterministic scripts and don't care.
-- **preflight**: `md-swarm/preflight.py` detects non-Claude-Code sessions (no `CLAUDECODE` env marker) and prints a layer-1 notice instead of hard-blocking. Outside Claude Code, "hooks down" is the expected structural state, not an error.
+- **preflight**: `md-swarm/preflight.py` currently verifies Claude registration only. In Codex/OpenCode it still prints the older layer-1 notice even when the compatible adapter is installed; treat layer 1 as authoritative until cross-harness live-probe integration lands.
 - **Recommended**: copy this `AGENTS.md` into your paper project's root (or merge the Iron rules into the project's existing `AGENTS.md`), so every future session in that project sees these rules automatically.

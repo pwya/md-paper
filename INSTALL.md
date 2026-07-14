@@ -10,7 +10,7 @@
 
 ## FOR THE AI ASSISTANT — follow these steps in order
 
-> You are installing md-paper: five agent skills + a global pandoc toolchain + (Claude Code only) two manuscript-protection hooks. Run each step, check the result, and stop with a clear message if a precondition fails. **Do not skip the verification.** All commands are PowerShell on Windows.
+> You are installing md-paper: five agent skills + a global pandoc toolchain + cross-harness manuscript protection for Claude Code / Codex / OpenCode. Run each step, check the result, and stop with a clear message if a precondition fails. **Do not skip the verification.** All commands are PowerShell on Windows.
 
 ### Step 0 — Preconditions
 
@@ -74,15 +74,20 @@ powershell -ExecutionPolicy Bypass -File (Join-Path $repo "md-build\setup_md_too
 
 This downloads the pinned **pandoc 3.9.0.2 + pandoc-crossref 0.3.24a** into `%LOCALAPPDATA%\md-pandoc` (no admin, no PATH pollution) and copies the bundled Zotero Lua filters locally. Behind a firewall / in mainland China, add `-Mirror https://<a-github-mirror>`. If it prints "pandoc not found" later, this step didn't complete.
 
-### Step 4 — Claude Code only: register the manuscript-protection hooks
+### Step 4 — Register protection hooks (Claude Code / Codex / OpenCode)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File (Join-Path $repo "md-unpack\setup_hooks.ps1")
+powershell -ExecutionPolicy Bypass -File (Join-Path $repo "md-unpack\setup_all_hooks.ps1")
 ```
 
-This writes two PreToolUse hooks into `~/.claude/settings.json` (and patches cc-switch provider templates if present, so switching providers won't wipe them). The hooks physically block any AI tool call from directly overwriting `manuscript.md` — all AI edits must go through the safety-checked apply pipeline.
+The installer deploys one shared policy core to `~/.md-paper/hooks/md_hook_policy.py`, then uses each harness's native extension point without replacing unrelated configuration:
 
-**Not using Claude Code?** Skip this step — hooks are a Claude Code feature and cannot exist in Codex / OpenCode / Hermes. The pipeline stays safe on **layer 1** (the scripts themselves: single-writer apply + citation gates), and the suite's `preflight.py` recognizes non-Claude-Code sessions (it prints a notice instead of blocking). Two things stand in for the hooks there:
+- **Claude Code**: merges the three established `PreToolUse` hook groups into `~/.claude/settings.json` and cc-switch templates.
+- **Codex**: merges one `PreToolUse` group into `~/.codex/hooks.json`; existing events such as `Stop` remain untouched.
+- **OpenCode**: installs `~/.config/opencode/plugins/md-paper.js`, using `tool.execute.before` to call the same policy core.
+- **Hermes / other agents**: no adapter yet; use the rules below.
+
+These hooks are **layer 2**. Layer 1 remains load-bearing: single-writer apply + citation/uniqueness/order gates. Codex's own documentation also describes current `PreToolUse` interception as a guardrail rather than a complete enforcement boundary, so keep [AGENTS.md](AGENTS.md) in every paper project:
 
 1. The rules in [AGENTS.md](AGENTS.md) — Codex / OpenCode / Hermes read that file automatically as workspace instructions.
 2. **Recommended:** copy it into the user's *paper project* root as well, so every future session there sees the rules:
@@ -106,14 +111,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $env:USERPROFILE 
 
 Expect **6/6 green**. Any red → follow its on-screen hint (junction / registration / restart / BOM).
 
-**Codex / OpenCode / Hermes / other agents:** no hooks to verify. Instead check:
+**Codex:** restart, run `/hooks`, review and trust the new md-paper definition, then check the deployed core:
+
+```powershell
+py (Join-Path $env:USERPROFILE ".md-paper\hooks\md_hook_policy.py") --platform codex --selftest
+```
+
+**OpenCode:** restart it (local plugins load at startup), then check the same core:
+
+```powershell
+py (Join-Path $env:USERPROFILE ".md-paper\hooks\md_hook_policy.py") --platform opencode --selftest
+```
+
+**Hermes / other agents:** no native adapter to verify. Check layer 1 instead:
 
 ```powershell
 py (Join-Path $repo "md-swarm\preflight.py") --mode warn --context install-check   # expect the "non-Claude-Code session" notice + exit 0
 Test-Path "$env:LOCALAPPDATA\md-pandoc"                                            # expect True (toolchain installed)
 ```
 
-Then restart the agent (skills are usually scanned at session start) and ask it: *"What md-paper skills can you see?"* — it should list all five.
+Then restart the agent (skills and hooks/plugins are usually scanned at session start) and ask it: *"What md-paper skills can you see?"* — it should list all five.
+
+Current limitation: `preflight.py` still uses its older Claude-vs-non-Claude report and therefore describes Codex/OpenCode as layer-1-only even when the new adapter is installed. That message is not an install failure; preflight/live-probe integration is intentionally deferred to the next hardening pass.
 
 ### Step 6 — Report
 
@@ -123,13 +142,13 @@ Tell the user, concisely: which skills were linked into which tool(s), that the 
 
 ## Manual install (if you'd rather not use an AI)
 
-Run Steps 1–5 above yourself in PowerShell, substituting the cloned repo path for `$repo`. That's the entire install: **link 5 skills (into each tool you use) → `setup_md_tools.ps1` → (Claude Code) `setup_hooks.ps1` → restart → verify.**
+Run Steps 1–5 above yourself in PowerShell, substituting the cloned repo path for `$repo`. That's the entire install: **link 5 skills → `setup_md_tools.ps1` → `setup_all_hooks.ps1` → restart → verify.**
 
 ## Per-tool notes
 
-- **Claude Code** — the full experience: skills auto-load, plus the two protection hooks physically deny any stray direct write to `manuscript.md` (layer 2).
-- **OpenCode** — reads `~/.claude/skills` natively, so the default Step 2 target is enough; zero extra configuration. No hook layer: [AGENTS.md](AGENTS.md) rules stand in.
-- **Codex** — junction into `~/.codex/skills` (Step 2). Reads `AGENTS.md` automatically as workspace instructions.
+- **Claude Code** — skills auto-load, plus the established protection hooks (layer 2).
+- **OpenCode** — reads `~/.claude/skills` natively; the installed local plugin supplies a best-effort layer-2 guard.
+- **Codex** — junction into `~/.codex/skills`; `hooks.json` supplies a best-effort layer-2 guard after `/hooks` trust review.
 - **Hermes Agent** — junction into `~/.hermes/skills` (Step 2). Compatible with the agentskills.io standard; supports `AGENTS.md` workspace instructions.
 - **Any other agent** — the five `SKILL.md` files are plain Markdown runbooks and every pipeline step is an ordinary CLI script (`py md-swarm\apply_md_changeset.py …`, `powershell md-build\build.ps1 …`). Tell the agent to read the relevant `SKILL.md` and follow it.
-- **Safety model everywhere**: the load-bearing protection is **layer 1, inside the scripts** — `apply_md_changeset.py` is the single writer of `manuscript.md`, with citation / uniqueness / order gates. Claude Code's hooks are an *additional* layer 2. Outside Claude Code you lose only layer 2; keep the [AGENTS.md](AGENTS.md) iron rules in front of the agent and never let it edit `manuscript.md` directly.
+- **Safety model everywhere**: the load-bearing protection is **layer 1, inside the scripts** — `apply_md_changeset.py` is the single writer of `manuscript.md`, with citation / uniqueness / order gates. Harness hooks/plugins are an additional best-effort layer 2; keep the [AGENTS.md](AGENTS.md) iron rules in front of every agent.

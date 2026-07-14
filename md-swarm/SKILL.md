@@ -84,11 +84,11 @@ allowed-tools: [Read, Write, Edit, PowerShell, Bash, Grep, Glob, Agent, AskUserQ
 7. **核对 + 体检**：
    ```
    py "<本skill>\verify_applied.py" --changeset swarm\changeset.json --manuscript manuscript.md   # 每条 LANDED
-   py "<本skill>\verify_refs.py" --baseline swarm\_baseline.md --current manuscript.md --changeset swarm\changeset.json   # 引用 + 图/表/公式体检
+   py "<本skill>\verify_refs.py" --baseline swarm\_baseline.md --current manuscript.md --changeset swarm\changeset.json --authorized-patches-dir swarm\patches_applied   # 引用 + 图/表/公式体检
    py "<本skill>\verify_citekeys.py" --manuscript manuscript.md   # 防"编造引用"（citekey 不在库=可疑；离线 WARN，Zotero 开着可加 --zotero 坐实编造才 HARD）
    ```
    退出码非 0 → 有没落地 / 丢引用 / Zotero 坐实的编造引用，回去修，别带病走。
-   > **`--changeset`（T21-6·2026-06-28 加）**：让 verify_refs 知道本批哪些 citekey 是**授权删的**（`intent=delete-citation/rewrite` 的 patch 里 find 有、replace 没了的 key）→ 这些 drop 从 HARD 降为 **WARN（intended, not blocked）**，不再误判为"丢引用"逼你回去修。**没授权就丢的 key 仍 HARD**（默认保护不削弱）。⚠️ 只认**本批** changeset 的授权；上一批授权删的 key 在后续批次的 verify 里会重新报 HARD（per-batch 局限，已知；最终出稿 md-build 无 dropped-citekey 检查、不受影响）。
+   > **累计授权删除（T21-6 + P0 hardening）**：`--changeset` 提供本批授权，`--authorized-patches-dir swarm\patches_applied` 从已归档 patch 累计前面批次的授权；两者取并集。只有 `intent=delete-citation/rewrite` 且 find 有、replace 没有的 citekey 才从 HARD 降为 WARN。归档里任何 JSON 损坏都会 HARD 停下，绝不静默忘掉旧授权；没授权就丢的 key 仍 HARD（默认保护不削弱）。
    > `verify_refs` 除了引用，**每批还报图/表/公式（`{#fig:}`/`{#tbl:}`/`{#eq:}`）相对基线的增删**——丢了哪个、加了哪个都逐条列出（**只 WARN 不阻断**：改稿删图删表是合法的；但若删掉的定义仍被 `[@fig:x]` 引用，会照旧 HARD 拦）。这让图表公式和引用一样、在**每个改稿批次**都被盯着，不只出稿那一下。未带 label 的图/表/公式这里盯不到 → 由 `md-build` 的 `verify_conservation`（AST 全量数）在出稿时兜底。
    > **`verify_citekeys`（防"编造引用"·2026-07-11 接入）**：与 `verify_refs`（防"丢引用"）互补的另一半。它扫稿里每个真 `[@key]` 在不在这篇的已知文献里（`references.json` ∪ `build\citemap.tsv`），不在的当**可疑**大声念名。**离线永远 exit 0、只 WARN**——离线分不清"你改稿时真新加的文献"和"AI 凭空编的"，绝不误杀真引用。只有**加 `--zotero` 且 Zotero+BBT 开着**、问库坐实"库里也没有"时才 **HARD（exit 2）**。主控看到 WARN 名单要判断：明显 authorYear 瞎编的 → 回去把那条 patch 引用改对/删掉；你真新加的文献 → 应写成 `[@NEW: 作者 年]` 占位、事后经 Zotero 补真 key。**做 live 工作流（Zotero 开着）时建议加 `--zotero`**，把"编造"从 WARN 升成 HARD 拦死。
 8. **归档**：把本批 `swarm/patches/*.json` 移进 `swarm/patches_applied/`（留审计/人读）。`swarm/patches/` 清空，进下一 Task。

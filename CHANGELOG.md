@@ -5,7 +5,18 @@
 
 ---
 
-## [未发版 / Unreleased] — main 分支上晚于 v0.1 的改动
+## [未发版 / Unreleased] — main 分支上晚于 v0.11 的改动
+
+## [v0.11] - 2026-07-14
+
+### 2026-07-14 · P0 稳定性修复 + 跨 harness 保护层
+
+*(EN: P0 hardening and cross-harness protection adapters for Claude Code, Codex, and OpenCode.)*
+
+- 离线 citekey 对账始终读取当前 `manuscript.md`，旧 provisional 备份只作恢复；手稿与 citemap 改为原子写入，二次运行不再回滚后续编辑。
+- `collect_patches.py` 遇到坏 JSON / 空 patch 文件立即非零退出，不再写出“部分 changeset + exit 0”。
+- `verify_refs.py` 从 `patches_applied/` 累计前批授权删除，后续批次不再把已批准引用删除重新判成 HARD。
+- hook 安装改为按命令身份合并，保留用户原有事件和处理器；新增 `setup_all_hooks.ps1`，用共享 Python policy + Codex `hooks.json` + OpenCode `tool.execute.before` 适配层提供跨工具保护。
 
 ### 2026-07-13 · 跨工具兼容:Codex / OpenCode / Hermes Agent 也能用了
 
@@ -43,5 +54,6 @@
 - 锁定版 pandoc 工具链一键安装(pandoc 3.9.0.2 + pandoc-crossref 0.3.24a,版本配套、自动下载)。
 - 附:中文用户完全手册、Apache-2.0 许可、NOTICE 第三方声明。
 
-[未发版 / Unreleased]: https://github.com/pwya/md-paper/compare/v0.1...HEAD
+[未发版 / Unreleased]: https://github.com/pwya/md-paper/compare/v0.11...HEAD
+[v0.11]: https://github.com/pwya/md-paper/compare/v0.1...v0.11
 [v0.1]: https://github.com/pwya/md-paper/releases/tag/v0.1

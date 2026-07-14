@@ -14,6 +14,7 @@ the single source of the "keep citemap in step with the manuscript" rule.
 """
 import os
 import re
+import tempfile
 
 
 def rewrite_citekeys(md_text, prov_to_real):
@@ -34,6 +35,42 @@ def rewrite_citekeys(md_text, prov_to_real):
     return new_md
 
 
+def atomic_write_text(path, text):
+    """Write UTF-8/LF text atomically beside *path*, then replace the target."""
+    parent = os.path.dirname(os.path.abspath(path)) or '.'
+    os.makedirs(parent, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(path) + '.', suffix='.tmp', dir=parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(text.replace('\r\n', '\n').replace('\r', '\n'))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def reconcile_manuscript(manuscript_path, prov_to_real):
+    """Reconcile the CURRENT manuscript and preserve its first provisional state once.
+
+    The backup is recovery-only. It must never become the input of a later run, otherwise
+    post-reconcile edits can be silently rolled back to stale content.
+    Returns (rewritten_text, backup_path).
+    """
+    with open(manuscript_path, encoding='utf-8', newline='') as f:
+        current = f.read().replace('\r\n', '\n').replace('\r', '\n')
+    rewritten = rewrite_citekeys(current, prov_to_real)
+    backup = manuscript_path.replace('.md', '_provisional.md')
+    if not os.path.exists(backup):
+        atomic_write_text(backup, current)
+    atomic_write_text(manuscript_path, rewritten)
+    return rewritten, backup
+
+
 def sync_citemap(citemap_path, prov_to_real):
     """Rewrite the provisional_citekey column (col 1) of citemap.tsv to the reconciled
     real keys, so -Mode rebuild -- which matches the offline citemap by these keys -- does
@@ -50,7 +87,7 @@ def sync_citemap(citemap_path, prov_to_real):
         return (None, None)
     bak = citemap_path + '.provbak'
     if not os.path.exists(bak):
-        open(bak, 'w', encoding='utf-8').write('\n'.join(cm_lines))
+        atomic_write_text(bak, '\n'.join(cm_lines))
     changed = 0
     for i in range(1, len(cm_lines)):
         if not cm_lines[i].strip():
@@ -60,7 +97,7 @@ def sync_citemap(citemap_path, prov_to_real):
             cols[1] = prov_to_real[cols[1]]
             changed += 1
             cm_lines[i] = '\t'.join(cols)
-    open(citemap_path, 'w', encoding='utf-8').write('\n'.join(cm_lines))
+    atomic_write_text(citemap_path, '\n'.join(cm_lines))
     return (changed, os.path.basename(bak))
 
 
@@ -80,8 +117,18 @@ if __name__ == '__main__':
     # longer token is left alone
     assert rewrite_citekeys('[@li2020bis]', {'li2020': 'X'}) == '[@li2020bis]'
 
-    # sync_citemap: rewrites col 1, leaves a one-time backup, returns the count
+    # P0 regression: rerunning reconciliation must read the current manuscript, never the
+    # one-time provisional backup. A later edit therefore survives a second reconciliation.
     d = tempfile.mkdtemp()
+    man = os.path.join(d, 'manuscript.md')
+    atomic_write_text(man, 'first [@li2020]\n')
+    reconcile_manuscript(man, {'li2020': 'liReal2020'})
+    atomic_write_text(man, 'later edit [@other2021]\n')
+    reconcile_manuscript(man, {'other2021': 'otherReal2021'})
+    assert open(man, encoding='utf-8').read() == 'later edit [@otherReal2021]\n'
+    assert open(man.replace('.md', '_provisional.md'), encoding='utf-8').read() == 'first [@li2020]\n'
+
+    # sync_citemap: rewrites col 1, leaves a one-time backup, returns the count
     cm = os.path.join(d, 'citemap.tsv')
     open(cm, 'w', encoding='utf-8').write(
         'placeholder\tprovisional_citekey\tzotero_item_key\ttitle\n'

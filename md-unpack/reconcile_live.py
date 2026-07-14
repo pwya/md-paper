@@ -19,7 +19,7 @@ Safety: if Zotero/BBT is unreachable it exits NONZERO WITHOUT touching manuscrip
 offline path (Zotero closed) use reconcile_citekeys.py with a Better-CSL-JSON export instead.
 """
 import json, re, io, sys, os, csv, argparse, urllib.request
-from _recon import rewrite_citekeys, sync_citemap   # shared rewrite + citemap-sync (DRY, see _recon.py)
+from _recon import reconcile_manuscript, sync_citemap   # shared rewrite + citemap-sync (DRY, see _recon.py)
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -84,15 +84,8 @@ for prov, item in prov_to_item.items():
     else:
         unmatched.append((prov, item))
 
-# --- rewrite manuscript.md (longest provisional first so prefixes don't clobber) ---
-# Read the CURRENT manuscript (preserve any later edits); replacements are idempotent -- an
-# already-real key won't match a provisional pattern. Back up the original provisional ONCE.
-prov_backup = a.manuscript.replace('.md', '_provisional.md')
-md = open(a.manuscript, encoding='utf-8').read()
-new_md = rewrite_citekeys(md, prov_to_real)   # longest-first + lookahead + prov==real skip (see _recon.py)
-if not os.path.exists(prov_backup):
-    open(prov_backup, 'w', encoding='utf-8').write(md)
-open(a.manuscript, 'w', encoding='utf-8').write(new_md)
+# --- rewrite the CURRENT manuscript atomically; the provisional backup is recovery-only ---
+new_md, prov_backup = reconcile_manuscript(a.manuscript, prov_to_real)
 
 # keep build/citemap.tsv in sync: -Mode rebuild matches the offline citemap by these provisional
 # keys, so if manuscript.md moves to real keys but the citemap stays provisional, rebuild would

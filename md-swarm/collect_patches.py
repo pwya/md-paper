@@ -14,7 +14,7 @@ Output changeset.json:
 
 Usage:
   py collect_patches.py --patches-dir swarm\\patches --manuscript manuscript.md --out swarm\\changeset.json
-Exit: 0 ok; 2 fatal.
+Exit: 0 ok; 2 fatal (including any malformed/empty patch file).
 """
 import argparse, glob, io, json, os, sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -54,22 +54,23 @@ def main():
             man_text = f.read().replace('\r\n', '\n')   # normalize for position-finding (patch find is LF)
 
     collected = []   # (sort_pos, tiebreak, patch)
-    skipped = []
+    stale = []       # explicitly tolerated only with --skip-stale
+    invalid = []     # malformed/empty agent output: fail the whole collection loudly
     aliased = []     # files whose patches used non-standard field names (auto-mapped)
     for fp in files:
         if a.skip_stale and man_mtime and os.path.getmtime(fp) < man_mtime:
-            skipped.append((os.path.basename(fp), 'stale (older than manuscript.md) -- skipped')); continue
+            stale.append((os.path.basename(fp), 'stale (older than manuscript.md) -- skipped')); continue
         try:
             # strict=False tolerates raw control chars inside JSON strings -- a common weak-model
             # output flaw that used to make the whole file unparseable and silently dropped.
             with open(fp, encoding='utf-8') as fh:
                 obj = json.load(fh, strict=False)
         except Exception as e:
-            skipped.append((os.path.basename(fp), 'parse error (not valid JSON even leniently): %s' % e)); continue
+            invalid.append((os.path.basename(fp), 'parse error (not valid JSON even leniently): %s' % e)); continue
         fid = str(_pick(obj, 'id') or os.path.splitext(os.path.basename(fp))[0])
         plist = _pick(obj, 'patches', 'edits', 'changes') or []
         if not plist:
-            skipped.append((os.path.basename(fp), 'no patches')); continue
+            invalid.append((os.path.basename(fp), 'no patches')); continue
         for i, p in enumerate(plist):
             find = _pick(p, 'find', 'old_string', 'old', 'search', 'from') or ''
             repl = _pick(p, 'replace', 'new_string', 'new', 'replacement', 'to')
@@ -92,20 +93,64 @@ def main():
     collected.sort(key=lambda t: (t[0], t[1]))
     patches = [t[2] for t in collected]
 
+    print('=== collect_patches ===')
+    print('files  :', len(files), ' patches:', len(patches))
+    for nm, why in stale:
+        print('  SKIPPED', nm, '-', why)
+    for nm, why in invalid:
+        print('  FATAL  ', nm, '-', why)
+    for nm in aliased:
+        print('  NOTE   ', nm, '- non-standard field names (old_string/new_string/action/...) auto-mapped to find/replace/intent')
+    if invalid:
+        print('FATAL: refusing to write a partial changeset; fix every invalid patch file and rerun.')
+        sys.exit(2)
+    if not patches:
+        print('FATAL: no usable patches remain after collection.')
+        sys.exit(2)
+
     out = a.out or os.path.join(os.path.dirname(a.patches_dir) or '.', 'changeset.json')
     with open(out, 'w', encoding='utf-8', newline='') as f:
         json.dump({'source_md': os.path.basename(a.manuscript), 'patches': patches},
                   f, ensure_ascii=False, indent=1)
 
-    print('=== collect_patches ===')
-    print('files  :', len(files), ' patches:', len(patches))
-    for nm, why in skipped:
-        print('  SKIPPED', nm, '-', why)
-    for nm in aliased:
-        print('  NOTE   ', nm, '- non-standard field names (old_string/new_string/action/...) auto-mapped to find/replace/intent')
     print('-> wrote', out)
     sys.exit(0)
 
 
+def _selftest():
+    """P0 regression: malformed agent output must not yield exit 0 or a partial changeset."""
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix='md_collect_selftest_') as td:
+        man = os.path.join(td, 'manuscript.md')
+        patch_dir = os.path.join(td, 'patches')
+        out = os.path.join(td, 'changeset.json')
+        os.makedirs(patch_dir)
+        open(man, 'w', encoding='utf-8').write('alpha\n')
+        open(os.path.join(patch_dir, 'bad.json'), 'w', encoding='utf-8').write('{broken')
+        p = subprocess.run(
+            [sys.executable, os.path.abspath(__file__), '--patches-dir', patch_dir,
+             '--manuscript', man, '--out', out],
+            capture_output=True, text=True, encoding='utf-8', errors='replace')
+        assert p.returncode == 2, (p.returncode, p.stdout, p.stderr)
+        assert not os.path.exists(out), 'partial changeset must not be written'
+
+        os.unlink(os.path.join(patch_dir, 'bad.json'))
+        good = {'id': 'p1', 'patches': [{'find': 'alpha', 'replace': 'beta'}]}
+        open(os.path.join(patch_dir, 'good.json'), 'w', encoding='utf-8').write(
+            json.dumps(good, ensure_ascii=False))
+        p = subprocess.run(
+            [sys.executable, os.path.abspath(__file__), '--patches-dir', patch_dir,
+             '--manuscript', man, '--out', out],
+            capture_output=True, text=True, encoding='utf-8', errors='replace')
+        assert p.returncode == 0, (p.returncode, p.stdout, p.stderr)
+        assert len(json.load(open(out, encoding='utf-8'))['patches']) == 1
+    print('OK collect_patches self-test passed')
+
+
 if __name__ == '__main__':
-    main()
+    if '--selftest' in sys.argv:
+        _selftest()
+    else:
+        main()

@@ -33,7 +33,7 @@ Tip for --baseline: snapshot the pre-swarm manuscript, e.g.
 Use a baseline from the SAME citekey namespace (before any citekey reconciliation),
 or dropped-citekey detection will false-positive.
 """
-import argparse, io, os, sys
+import argparse, glob, io, json, os, sys
 from _citescan import scan as parse   # shared citekey/xref/group scanner (DRY + code-fence aware, see _citescan.py)
 
 # Force UTF-8 I/O regardless of the Windows console code page (the whole point).
@@ -71,26 +71,57 @@ def _authorized_drops(cs):
     return out
 
 
+def _authorized_drops_from_files(paths):
+    """Union deliberate drops from validated JSON patch/changeset files.
+
+    Invalid archived authorization evidence is a hard input error: silently ignoring it would
+    make a later batch forget an earlier human-approved deletion.
+    """
+    out = set()
+    for path in paths:
+        try:
+            with open(path, encoding='utf-8') as f:
+                obj = json.load(f)
+        except Exception as e:
+            raise ValueError('%s: %s' % (path, e))
+        if not isinstance(obj, dict):
+            raise ValueError('%s: top-level JSON must be an object' % path)
+        out |= _authorized_drops(obj)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--current', required=True)
     ap.add_argument('--baseline', default=None)
     ap.add_argument('--changeset', default=None,
-                    help='optional changeset.json; citekeys removed by delete-citation/rewrite '
-                         'patches are downgraded from HARD to WARN (authorized deletion, T21-6)')
+                     help='optional changeset.json; citekeys removed by delete-citation/rewrite '
+                          'patches are downgraded from HARD to WARN (authorized deletion, T21-6)')
+    ap.add_argument('--authorized-patches-dir', default=None,
+                    help='optional archive directory (normally swarm/patches_applied); union '
+                         'authorized drops from all prior *.json files with the current changeset')
     a = ap.parse_args()
 
     # set of citekeys the changeset authorized to drop (empty if no --changeset)
     authorized_drop = set()
+    auth_files = []
     if a.changeset:
         if not os.path.exists(a.changeset):
             print('  (warn: --changeset not found, treating all drops as HARD:', a.changeset, ')')
         else:
-            import json
-            try:
-                authorized_drop = _authorized_drops(json.load(open(a.changeset, encoding='utf-8')))
-            except Exception as e:
-                print('  (warn: could not parse --changeset, all drops stay HARD:', e, ')')
+            auth_files.append(a.changeset)
+    if a.authorized_patches_dir:
+        if os.path.isdir(a.authorized_patches_dir):
+            auth_files.extend(sorted(glob.glob(os.path.join(a.authorized_patches_dir, '*.json'))))
+        elif os.path.exists(a.authorized_patches_dir):
+            print('ERROR: --authorized-patches-dir is not a directory:', a.authorized_patches_dir)
+            sys.exit(2)
+        # A missing archive is normal before the first batch; it contributes no prior grants.
+    try:
+        authorized_drop = _authorized_drops_from_files(auth_files)
+    except ValueError as e:
+        print('ERROR: invalid authorization evidence:', e)
+        sys.exit(2)
 
     if not os.path.exists(a.current):
         print('ERROR: --current not found:', a.current); sys.exit(2)
@@ -197,6 +228,22 @@ def _selftest():
     assert ad == {'anon2020', 'anon2022'}, ad          # only delete-citation/rewrite drops
     assert 'notauth' not in ad, ad                     # modify intent does not authorize a drop
     assert 'keep1' not in ad, ad                       # kept keys are not "dropped"
+    # P0 regression: prior-batch authorization archives accumulate with the current batch.
+    import json, tempfile
+    with tempfile.TemporaryDirectory(prefix='md_verify_refs_selftest_') as td:
+        p1 = os.path.join(td, 'batch1.json')
+        p2 = os.path.join(td, 'batch2.json')
+        with open(p1, 'w', encoding='utf-8') as f:
+            json.dump({'patches': [{'intent': 'delete-citation', 'find': '[@old1]', 'replace': ''}]}, f)
+        with open(p2, 'w', encoding='utf-8') as f:
+            json.dump({'patches': [{'intent': 'rewrite', 'find': '[@old2]', 'replace': ''}]}, f)
+        assert _authorized_drops_from_files([p1, p2]) == {'old1', 'old2'}
+        open(p2, 'w', encoding='utf-8').write('{broken')
+        try:
+            _authorized_drops_from_files([p1, p2])
+            raise AssertionError('invalid archive must fail loudly')
+        except ValueError:
+            pass
     print('OK verify_refs self-test passed')
 
 
