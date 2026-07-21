@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  portable-checks:
+    name: Portable checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile Python sources
+        run: python -m compileall -q _md-shared md-build md-iterate md-swarm md-triage md-unpack
+
+      - name: Run regression checks
+        run: |
+          python md-unpack/_test_t21_fixes.py
+          python md-iterate/smoke_iterate.py
+          python md-swarm/preflight.py --selftest
+          python md-swarm/md_hook_policy.py --platform codex --selftest
