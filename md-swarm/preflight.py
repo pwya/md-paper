@@ -200,9 +200,12 @@ def gate(mode='block', context='', allow_no_hooks=False, dry=False, no_heal=Fals
     if res['ok']:
         print('  => protection hooks registered.')
         if not in_claude_code():
-            print('     (NOTE: this session is NOT Claude Code -- registered hooks never fire')
-            print('      here. Layer-1 guards (single-writer apply + citation gates) are the')
-            print('      active protection. Never write manuscript.md directly.)')
+            print('     (NOTE: this audit covers Claude registration only; it cannot prove')
+            print('      Codex/OpenCode adapter dispatch. Require both current-session live')
+            print('      probe actions to DENY before write-heavy md-swarm/md-iterate. If an')
+            print('      Active/Trusted Codex adapter still lets either action land, stop; do')
+            print('      not loop reinstall/Trust/restart. See openai/codex#21639.)')
+            print('     Layer-1 guards (single-writer apply + citation gates) remain mandatory.')
             return 0
         print('     (NOTE: REGISTRATION only -- not a proof THIS session fires them. A snapshot')
         print('      taken before the last hook change can still be stale.)')

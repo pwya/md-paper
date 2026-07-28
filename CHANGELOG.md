@@ -7,11 +7,24 @@
 
 ## [未发版 / Unreleased]
 
+## [v0.11.2] - 2026-07-28
+
+### Codex Hook 调度回归：响亮停机 + 文档勘误
+
+*(EN: fail loudly on the upstream Codex hook-dispatch regression; correct v0.11.1's overstatement and stop reinstall/restart loops.)*
+
+- current-session live-probe 失败时明确硬停写入型 `md-swarm` / `md-iterate`，并链接 OpenAI 上游回归 [openai/codex#21639](https://github.com/openai/codex/issues/21639)。
+- Codex 已显示 Active/Trusted 但真实动作仍落盘时，不再循环建议重装、Trust、重启；改为切换到已通过双 DENY 的宿主。
+- `probe_live_hooks.py --selftest` 新增失败指引回归断言，防止未来重新引入“重启循环”。
+- README、INSTALL、用户手册与 v0.11.1 发布说明同步澄清：v0.11.1 修复的是事件形状适配，不能修复宿主未调度 Hook 的上游故障。
+
 ## [v0.11.1] - 2026-07-28
 
 ### Codex Desktop 工具形状兼容 + Claude runner 加固
 
-*(EN: recognize Codex Desktop's real apply_patch/shell_command events while preserving Claude Code's PowerShell hook layer through the shell-neutral runner.)*
+*(EN: recognize Codex Desktop's apply_patch/shell_command payload shapes when the host dispatches hooks, while preserving Claude Code's PowerShell hook layer through the shell-neutral runner.)*
+
+> **2026-07-28 勘误：** 本版本修复的是 Codex 事件形状/参数适配，不能修复 Codex Desktop 自身未调度 Hook 的上游回归。物理保护是否可用只认 current-session live-probe 的两个明确 DENY；详见 v0.11.2 与 [openai/codex#21639](https://github.com/openai/codex/issues/21639)。
 
 - Codex policy 兼容 FREEFORM `apply_patch` 与 `shell_command`，并用真实事件形状补回归测试。
 - Codex 安装 matcher 同步覆盖动态工具名；live-probe 与 preflight 改为跨 harness 提示。
@@ -65,6 +78,8 @@
 - 锁定版 pandoc 工具链一键安装(pandoc 3.9.0.2 + pandoc-crossref 0.3.24a,版本配套、自动下载)。
 - 附:中文用户完全手册、Apache-2.0 许可、NOTICE 第三方声明。
 
-[未发版 / Unreleased]: https://github.com/pwya/md-paper/compare/v0.11...HEAD
+[未发版 / Unreleased]: https://github.com/pwya/md-paper/compare/v0.11.2...HEAD
+[v0.11.2]: https://github.com/pwya/md-paper/compare/v0.11.1...v0.11.2
+[v0.11.1]: https://github.com/pwya/md-paper/compare/v0.11...v0.11.1
 [v0.11]: https://github.com/pwya/md-paper/compare/v0.1...v0.11
 [v0.1]: https://github.com/pwya/md-paper/releases/tag/v0.1

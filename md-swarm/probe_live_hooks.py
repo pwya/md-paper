@@ -34,6 +34,7 @@ SENTINEL = "LIVE_HOOK_PROBE_SENTINEL_DO_NOT_CHANGE\n"
 PROTECT_BAD = "PROTECT_HOOK_PROBE_WRITE_SHOULD_NOT_LAND\n"
 GATE_BAD = "GATE_HOOK_PROBE_APPLY_SHOULD_NOT_LAND\n"
 STATE_REL = Path("swarm") / "live_hook_probe_state.json"
+CODEX_HOOK_REGRESSION_URL = "https://github.com/openai/codex/issues/21639"
 
 
 def suite_root():
@@ -175,10 +176,23 @@ def check(root):
 
     print("")
     print("RESULT: FAIL -- current-session hook layer is not live.")
-    print("        Claude Code: run verify_hooks.ps1, then open a brand-new session.")
-    print("        Codex: rerun setup_all_hooks, review/trust it in /hooks, then restart Codex.")
-    print("        Rerun this live probe before md-swarm/md-iterate writes.")
+    for line in failure_guidance():
+        print(line)
     return 1
+
+
+def failure_guidance():
+    """Return fail-loud remediation shared by runtime output and self-test."""
+    return [
+        "        STOP: do not run md-swarm/md-iterate writes in this harness.",
+        "        Claude Code: run verify_hooks.ps1, then open a brand-new session.",
+        "        Codex: install/review Trust once if missing. If already Active/Trusted,",
+        "               do NOT loop reinstall/Trust/restart; current Codex builds have",
+        "               a known upstream hook-dispatch regression:",
+        "               " + CODEX_HOOK_REGRESSION_URL,
+        "               Switch to a harness where both live actions explicitly DENY.",
+        "        Re-run only after the host/runtime or hook configuration actually changes.",
+    ]
 
 
 def cleanup(root):
@@ -204,6 +218,16 @@ def selftest():
         write_text(Path(load_state(root)["gate_manuscript"]), GATE_BAD)
         if check(root) == 0:
             print("[FAIL] gate failure should be detected")
+            return 1
+        guidance = "\n".join(failure_guidance())
+        if CODEX_HOOK_REGRESSION_URL not in guidance:
+            print("[FAIL] Codex regression URL missing from failure guidance")
+            return 1
+        if "do NOT loop reinstall/Trust/restart" not in guidance:
+            print("[FAIL] failure guidance can regress into the reinstall/restart loop")
+            return 1
+        if "Switch to a harness where both live actions explicitly DENY" not in guidance:
+            print("[FAIL] failure guidance does not provide a safe host fallback")
             return 1
         print("=== selftest: ALL PASSED ===")
         return 0

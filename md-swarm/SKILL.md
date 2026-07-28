@@ -24,7 +24,7 @@ allowed-tools: [Read, Write, Edit, PowerShell, Bash, Grep, Glob, Agent, AskUserQ
 > ```
 > 然后**按脚本打印的 ACTION 1/2 原样做**：Claude Code 用 Write/Edit + PowerShell/Bash；Codex 用 apply_patch + shell_command。先尝试写临时 `manuscript.md`，再尝试 apply 临时 `机改` changeset；必须亲眼看到两次都被 DENY，再跑脚本打印的 `--check` 和 `--cleanup`。
 >
-> ⛔ 弱模型适配铁律：**不许只读这个脚本、不许直接调用 hook `.ps1`、不许把 `--check` 的“没落盘”当成已通过**；`--check` 只能发现“真的落盘了”的失败，不能区分 DENY 和你偷懒没做。没看到两个 DENY → 停下：Claude Code 重跑 `verify_hooks.ps1` 并新开会话；Codex 重跑 `setup_all_hooks`、在 `/hooks` 复核 Trust 并重启 Codex；然后重跑 live-probe。
+> ⛔ 弱模型适配铁律：**不许只读这个脚本、不许直接调用 hook `.ps1`、不许把 `--check` 的“没落盘”当成已通过**；`--check` 只能发现“真的落盘了”的失败，不能区分 DENY 和你偷懒没做。没看到两个 DENY → **硬停，不运行任何写入型 md-swarm/md-iterate**。Claude Code 重跑 `verify_hooks.ps1` 并开全新会话；Codex 只在缺安装/缺 Trust 时各补一次。若 `/hooks` 已显示 Active/Trusted 而真实动作仍落盘，**不得循环重装、Trust、重启**：这是 Codex 已知的上游 Hook 调度回归（<https://github.com/openai/codex/issues/21639>），切换到已亲眼通过双 DENY 的宿主（当前推荐 Claude Code），待宿主版本或配置真正变化后再复测。
 
 ## Phase 2 总流程（并行起草 + 确定性落盘）
 

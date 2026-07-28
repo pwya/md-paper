@@ -5,14 +5,14 @@
 > 本手册写给**作者（用户）**：不用懂代码，读完就能独立完成"原稿摄取 → AI 批量改稿 → 出带活 Zotero 域的 Word"全流程。
 > 各技能的完整行为定义在其各自的 `SKILL.md`（随技能一起安装）。
 >
-> **建立**：2026-06-17 · **版本**：v0.11.1
+> **建立**：2026-06-17 · **版本**：v0.11.2
 
 ---
 
 > ⚠️ **内测用户须知（用之前先看这三条，能省掉绝大多数"怎么坏了"的麻烦）**
 >
 > 1. **只在 Windows + 装了 Microsoft Word 的电脑上用。** 摄取原稿要调 Word（Mac 暂不支持）；路径含中文/空格时，让 AI 用 PowerShell 工具跑脚本，**别用 Bash**（会乱码失败）。
-> 2. **第一次用，必须先确认两个"防护钩子"真生效了，再开始改稿。** 这俩钩子是防止 AI 改稿时把你的引用/正文改丢的命脉闸——没装上 = 没保护，而且**不报警**。装法见仓库根目录的 `INSTALL.md`，装完**新开一个 Claude 会话**再跑 `md-swarm\verify_hooks.ps1`，要看到 **6/6 green** 才算数；看不到 = 钩子没生效，**先别改稿**，照该节排查（junction 在不在 / settings.json 注册没 / 重启 Claude Code 没 / `.ps1` 是不是 UTF-8 带 BOM）。**⚠️ "重启 Claude Code" 这步特别容易做错**：在 VS Code 里要**新开一个 Claude 对话**，不是关掉面板再打开（重开若恢复了旧会话、钩子还是没加载）；`/clear` 对钩子不可靠、别用它充重启。
+> 2. **第一次用，必须先确认两个"防护钩子"真生效了，再开始改稿。** 这俩钩子是防止 AI 改稿时把你的引用/正文改丢的命脉闸。静态检查通过不等于当前会话真会拦截：Claude Code 先跑 `md-swarm\verify_hooks.ps1`，确认 **6/6 green**，再跑 current-session live-probe，且两个动作都必须明确 **DENY**。Codex 当前存在上游 Hook 调度回归（[openai/codex#21639](https://github.com/openai/codex/issues/21639)）：即使显示 Active/Trusted，处理器也可能根本没执行。若 Codex live-probe 没有两个 DENY，**立即停止写入型 `md-swarm` / `md-iterate`，不要循环重装、Trust 或重启**；切换到已通过 live-probe 的宿主，当前推荐 Claude Code。
 > 3. **这几类稿子现在还处理不了，别拿它们来试，否则会出坏稿：**
 >    - **AxMath 编辑的公式**：会变成 `$$\text{[TODO 重输 LaTeX]}$$` 占位，需你手动补 LaTeX（Word 原生公式不受影响）。
 >    - **行内公式 / 同行排多个图**：可能在 Word 里显示成字面 `[EQ-2]`。
@@ -241,7 +241,7 @@ powershell -ExecutionPolicy Bypass -File "%USERPROFILE%\.claude\skills\md-build\
 
 整套是五个标准 Agent Skill（`md-unpack`/`md-triage`/`md-swarm`/`md-iterate`/`md-build`，[agentskills.io](https://agentskills.io) 开放格式），自然语言驱动、可自由组合：大改走 triage + swarm、小修走 iterate、随时 build 出稿。没有 GUI、没有要背的菜单——你只管说要干什么。
 
-为 **Claude Code** 深度打造（"保护钩子"这层物理防线仅 Claude Code 有）；同时兼容 **Codex / OpenCode / Hermes Agent** 等支持 Agent Skills 开放标准的工具——OpenCode 原生就会读 `~/.claude/skills`，Codex 用 `~/.codex/skills`，Hermes 用 `~/.hermes/skills`。非 Claude Code 环境没有钩子这层，防护由脚本内置闸门（单写者 apply + 引用不删）+ 仓库根 `AGENTS.md` 守则承担；`preflight.py` 会自动识别非 Claude Code 会话，提示而不拦路。装法见 `INSTALL.md` 第 2 步。
+为 **Claude Code** 深度打造，同时兼容 **Codex / OpenCode / Hermes Agent** 等支持 Agent Skills 开放标准的工具——OpenCode 原生读取 `~/.claude/skills`，Codex 使用 `~/.codex/skills`，Hermes 使用 `~/.hermes/skills`。Codex / OpenCode 的原生适配器只是可选的第二层保护；是否真的生效，只认当前会话 live-probe 的结果。Codex 当前有上游 Hook 调度回归（[openai/codex#21639](https://github.com/openai/codex/issues/21639)），Active/Trusted 不是执行证明。未获得两个 DENY 时，不得运行写入型 `md-swarm` / `md-iterate`；应切换到已通过验证的宿主。所有宿主仍必须遵守脚本内置闸门（单写者 apply + 引用不删）和仓库根 `AGENTS.md`。装法见 `INSTALL.md` 第 2 步。
 
 ---
 
