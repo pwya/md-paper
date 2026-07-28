@@ -215,10 +215,11 @@ def gate(mode='block', context='', allow_no_hooks=False, dry=False, no_heal=Fals
 
     if not in_claude_code():
         print('')
-        print('--- non-Claude-Code session' + ctx + ': protection hooks unavailable (expected) ---')
-        print('    The two protection hooks are a Claude Code feature; this harness (Codex /')
-        print('    OpenCode / Hermes / plain terminal / ...) cannot register or fire them, so')
-        print('    this is the structural state here -- NOT a cc-switch wipe. Proceeding on')
+        print('--- non-Claude-Code session' + ctx + ': Claude registration audit not applicable ---')
+        print('    Codex/OpenCode can use their native md-paper adapters; this preflight audits')
+        print('    only Claude settings + cc-switch templates and cannot prove those adapters')
+        print('    are live. Before a write-heavy step, run probe_live_hooks.py and require')
+        print('    both CURRENT-SESSION actions to be explicitly DENIED. Proceeding on')
         print('    layer-1: apply_md_changeset.py is the ONLY writer of manuscript.md, with')
         print('    citation / uniqueness / order gates built in.')
         print('    IRON RULE for this session: never edit manuscript.md with any file tool;')

@@ -22,9 +22,9 @@ allowed-tools: [Read, Write, Edit, PowerShell, Bash, Grep, Glob, Agent, AskUserQ
 > ```powershell
 > py "<本skill>\probe_live_hooks.py" --prepare
 > ```
-> 然后**按脚本打印的 ACTION 1/2 原样做**：用当前 assistant 的 Write 工具尝试写临时 `manuscript.md`，再用当前 assistant 的 PowerShell/Bash 工具尝试 apply 临时 `机改` changeset。必须亲眼看到两次都被 DENY，再跑脚本打印的 `--check` 和 `--cleanup`。
+> 然后**按脚本打印的 ACTION 1/2 原样做**：Claude Code 用 Write/Edit + PowerShell/Bash；Codex 用 apply_patch + shell_command。先尝试写临时 `manuscript.md`，再尝试 apply 临时 `机改` changeset；必须亲眼看到两次都被 DENY，再跑脚本打印的 `--check` 和 `--cleanup`。
 >
-> ⛔ 弱模型适配铁律：**不许只读这个脚本、不许直接调用 hook `.ps1`、不许把 `--check` 的“没落盘”当成已通过**；`--check` 只能发现“真的落盘了”的失败，不能区分 DENY 和你偷懒没做。没看到两个 DENY → 停下，让用户新开 Claude Code 会话并重跑 `verify_hooks.ps1` + live-probe。
+> ⛔ 弱模型适配铁律：**不许只读这个脚本、不许直接调用 hook `.ps1`、不许把 `--check` 的“没落盘”当成已通过**；`--check` 只能发现“真的落盘了”的失败，不能区分 DENY 和你偷懒没做。没看到两个 DENY → 停下：Claude Code 重跑 `verify_hooks.ps1` 并新开会话；Codex 重跑 `setup_all_hooks`、在 `/hooks` 复核 Trust 并重启 Codex；然后重跑 live-probe。
 
 ## Phase 2 总流程（并行起草 + 确定性落盘）
 

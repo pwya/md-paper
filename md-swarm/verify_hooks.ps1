@@ -60,13 +60,36 @@ if ($FunctionalOnly) {
     $settings = Join-Path $env:USERPROFILE '.claude\settings.json'
     if (Test-Path -LiteralPath $settings) {
         $sjson = Get-Content -LiteralPath $settings -Raw -Encoding UTF8
-        foreach ($name in @('md_protect_hook', 'md_swarm_gate_hook')) {
-            if ($sjson -match $name) {
-                Write-Host ("  [OK]   settings.json 已注册 " + $name) -ForegroundColor Green
-            } else {
-                Write-Host ("  [FAIL] settings.json 未注册 " + $name + " —— 没注册则会话层不会调用它，钩子静默失效。") -ForegroundColor Red
-                $fail++
+        try {
+            $settingsObj = $sjson | ConvertFrom-Json
+            foreach ($name in @('md_protect_hook', 'md_swarm_gate_hook')) {
+                $commands = @()
+                foreach ($entry in @($settingsObj.hooks.PreToolUse)) {
+                    foreach ($hook in @($entry.hooks)) {
+                        $command = [string]$hook.command
+                        if ($command -match ([regex]::Escape($name) + '\.ps1')) {
+                            $commands += $command
+                        }
+                    }
+                }
+                $usable = @($commands | Where-Object {
+                    $_ -match '(?i)^\s*(?:py|python(?:\.exe)?)\s+' -and
+                    $_ -match '(?i)md_hook_runner\.py' -and
+                    $_ -match '(?i)\s--hook\s+'
+                })
+                if ($usable.Count -gt 0) {
+                    Write-Host ("  [OK]   settings.json 已注册可执行的 " + $name) -ForegroundColor Green
+                } elseif ($commands.Count -gt 0) {
+                    Write-Host ("  [FAIL] settings.json 虽有 " + $name + "，但未走 md_hook_runner.py。旧 `cmd /c` 会被 Git Bash 改写，直连 PowerShell 的输出也可能无法被 Claude 解析。") -ForegroundColor Red
+                    $fail++
+                } else {
+                    Write-Host ("  [FAIL] settings.json 未注册 " + $name + " —— 没注册则会话层不会调用它，钩子静默失效。") -ForegroundColor Red
+                    $fail++
+                }
             }
+        } catch {
+            Write-Host ("  [FAIL] settings.json 无法按 JSON 解析，不能证明注册命令可执行: " + $_.Exception.Message) -ForegroundColor Red
+            $fail += 2
         }
     } else {
         Write-Host ("  [FAIL] 找不到 settings.json: " + $settings) -ForegroundColor Red
@@ -144,7 +167,7 @@ if ($fail -eq 0) {
     Write-Host ("=== 结果：有 " + $fail + " 项没过 —— 钩子可能没真正生效（fail-open）。 ===") -ForegroundColor Red
     Write-Host "逐项排查：" -ForegroundColor Red
     Write-Host "  1) junction 在不在：~/.claude/skills/md-swarm 是否指向真身（缺了则会话找不到脚本，静默失效）" -ForegroundColor Yellow
-    Write-Host "  2) settings.json 注册没：PreToolUse 里有没有 md_protect_hook / md_swarm_gate_hook 两条" -ForegroundColor Yellow
+    Write-Host "  2) settings.json 注册命令是否通过 md_hook_runner.py；不要使用 cmd /c 或直连 PowerShell" -ForegroundColor Yellow
     Write-Host "  3) 重启没：改过钩子要新开一个 Claude Code 会话才激活" -ForegroundColor Yellow
     Write-Host "  4) 编码对不对：两个保护钩子 .ps1 必须存成 UTF-8 带 BOM（否则 PS 5.1 乱码崩、钩子整个失效）" -ForegroundColor Yellow
     Write-Host "  详见《新电脑设置指南》的 md-* 防呆硬闸 Hook 节。" -ForegroundColor Yellow

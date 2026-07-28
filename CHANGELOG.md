@@ -7,6 +7,15 @@
 
 ## [未发版 / Unreleased] — main 分支上晚于 v0.11 的改动
 
+### Codex Desktop 工具形状兼容 + Claude runner 加固
+
+*(EN: recognize Codex Desktop's real apply_patch/shell_command events while preserving Claude Code's PowerShell hook layer through the shell-neutral runner.)*
+
+- Codex policy 兼容 FREEFORM `apply_patch` 与 `shell_command`，并用真实事件形状补回归测试。
+- Codex 安装 matcher 同步覆盖动态工具名；live-probe 与 preflight 改为跨 harness 提示。
+- live-probe 将 protect / gate 分到两个临时工程，避免第一项失败污染第二项结果。
+- Claude Code 安装改走 `md_hook_runner.py`，避免 Git Bash 改写旧 `cmd /c`；两个既有 PowerShell 安全 Hook 与 `apply_md_changeset.py` 不变。
+
 ## [v0.11] - 2026-07-14
 
 ### 2026-07-14 · P0 稳定性修复 + 跨 harness 保护层

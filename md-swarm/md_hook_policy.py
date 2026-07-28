@@ -44,16 +44,23 @@ def _file_targets(tool, args, cwd):
     direct = _value(args, 'file_path', 'filePath', 'path')
     if direct:
         targets.append(_resolve(direct, cwd))
-    if tool == 'apply_patch':
-        patch = str(_value(args, 'command', 'patch') or '')
+    if tool in ('apply_patch', 'functions.apply_patch'):
+        # Codex Desktop's dynamic apply_patch tool sends the FREEFORM payload as
+        # a raw string; the built-in transport sends {"command": "..."}. Both
+        # must cross the same protected-file policy.
+        patch = (args if isinstance(args, str)
+                 else _value(args, 'command', 'patch', 'input'))
+        patch = str(patch or '')
         for match in re.finditer(r'^\*\*\* (?:Update|Add|Delete) File:\s*(.+?)\s*$', patch, re.M):
             targets.append(_resolve(match.group(1), cwd))
     return [p for p in targets if p]
 
 
 def _shell_command(tool, args):
-    if tool in ('bash', 'powershell', 'shell', 'exec_command', 'unified_exec'):
-        return str(_value(args, 'command', 'cmd') or '')
+    if tool in ('bash', 'powershell', 'shell', 'shell_command',
+                'functions.shell_command', 'exec_command', 'unified_exec'):
+        command = args if isinstance(args, str) else _value(args, 'command', 'cmd')
+        return str(command or '')
     return ''
 
 
@@ -166,8 +173,12 @@ def selftest():
         patch = '*** Begin Patch\n*** Update File: manuscript.md\n@@\n-a\n+b\n*** End Patch'
         assert evaluate({'tool_name': 'apply_patch', 'tool_input': {'command': patch},
                          'cwd': td})['decision'] == 'deny'
+        assert evaluate({'tool_name': 'apply_patch', 'tool_input': patch,
+                         'cwd': td})['decision'] == 'deny'
         command = 'Set-Content -LiteralPath manuscript.md -Value x'
         assert evaluate({'tool_name': 'Bash', 'tool_input': {'command': command},
+                         'cwd': td})['decision'] == 'deny'
+        assert evaluate({'tool_name': 'shell_command', 'tool_input': {'command': command},
                          'cwd': td})['decision'] == 'deny'
 
         swarm = os.path.join(td, 'swarm')
@@ -178,9 +189,15 @@ def selftest():
         apply_cmd = 'py apply_md_changeset.py --changeset "swarm/changeset.json" --manuscript manuscript.md'
         assert evaluate({'tool_name': 'Bash', 'tool_input': {'command': apply_cmd},
                          'cwd': td})['decision'] == 'deny'
+        assert evaluate({'tool_name': 'shell_command',
+                         'tool_input': {'command': apply_cmd},
+                         'cwd': td})['decision'] == 'deny'
         open(os.path.join(swarm, 'md_triage.md'), 'w', encoding='utf-8').write(
             '**人工确认：** 已确认\n')
         assert evaluate({'tool_name': 'Bash', 'tool_input': {'command': apply_cmd},
+                         'cwd': td})['decision'] == 'allow'
+        assert evaluate({'tool_name': 'shell_command',
+                         'tool_input': {'command': apply_cmd},
                          'cwd': td})['decision'] == 'allow'
     print('OK md_hook_policy self-test passed')
 

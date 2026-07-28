@@ -117,6 +117,10 @@ Expect **6/6 green**. Any red → follow its on-screen hint (junction / registra
 py (Join-Path $env:USERPROFILE ".md-paper\hooks\md_hook_policy.py") --platform codex --selftest
 ```
 
+For the session-level proof, run `md-swarm/probe_live_hooks.py --prepare`, perform
+the two printed real tool calls, and require both to be explicitly **DENIED**.
+The filesystem `--check` result alone is not sufficient.
+
 **OpenCode:** restart it (local plugins load at startup), then check the same core:
 
 ```powershell

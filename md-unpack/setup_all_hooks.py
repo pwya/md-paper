@@ -48,7 +48,9 @@ def merge_codex_document(document, deployed_policy):
     posix_command = 'python3 "$HOME/.md-paper/hooks/%s" --platform codex' % POLICY_NAME
     windows_command = 'py "%s" --platform codex' % deployed_policy
     kept.append({
-        'matcher': 'Bash|Edit|Write',
+        # Bash/Edit/Write cover Codex's built-in tools. Codex Desktop also
+        # exposes dynamic tools under their concrete names.
+        'matcher': 'Bash|Edit|Write|apply_patch|shell_command',
         'hooks': [{
             'type': 'command',
             'command': posix_command,
@@ -197,6 +199,9 @@ def selftest():
     commands = [h['command'] for g in merged['hooks']['PreToolUse'] for h in g['hooks']]
     assert 'python user.py' in commands
     assert len([c for c in commands if POLICY_NAME in c]) == 1
+    policy_groups = [g for g in merged['hooks']['PreToolUse']
+                     if any(POLICY_NAME in h.get('command', '') for h in g['hooks'])]
+    assert policy_groups[0]['matcher'] == 'Bash|Edit|Write|apply_patch|shell_command'
     assert merge_codex_document(merged, r'C:\stable\md_hook_policy.py') == merged
     plugin = opencode_plugin_source()
     assert 'tool.execute.before' in plugin
