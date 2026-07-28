@@ -131,6 +131,7 @@ flowchart LR
 ### 已知限制
 
 - **仅支持 Windows + Microsoft Word** —— `md-unpack` 靠 Word COM,macOS 暂不支持。
+- **Codex Desktop 的 Hook 调度存在上游回归** —— 当前部分 Codex Desktop / 非交互 CLI 版本会显示 Hook 已 Active/Trusted，却不真正执行处理器（[openai/codex#21639](https://github.com/openai/codex/issues/21639)）。在 Codex 中运行写入型 `md-swarm` / `md-iterate` 前，必须亲眼看到 current-session live-probe 两个动作都 DENY；否则切换到已通过验证的宿主，当前推荐 Claude Code。
 - *其他细微限制(引用来源、页码定位、个别转义、浮动图、老 AxMath 公式)未在此列出,见[用户完全手册](md-技能套件·用户完全手册.md)。*
 
 ### 许可
@@ -282,6 +283,7 @@ flowchart LR
 ### Known Limitations
 
 - **Windows + Microsoft Word only** — `md-unpack` drives Word via COM; macOS is not supported yet.
+- **Codex Desktop has an upstream Hook-dispatch regression** — some current Codex Desktop / non-interactive CLI builds report Hooks as Active/Trusted without invoking the handler ([openai/codex#21639](https://github.com/openai/codex/issues/21639)). Before any write-capable `md-swarm` / `md-iterate` run in Codex, require both current-session live-probe actions to DENY; otherwise switch to a verified host, currently Claude Code.
 - *Other minor limitations (citation providers, page locators, escaping edge cases, floating figures, legacy AxMath equations) are not listed here — see the [User Guide](md-技能套件·用户完全手册.md).*
 
 ### License

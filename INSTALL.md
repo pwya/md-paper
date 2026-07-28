@@ -94,6 +94,14 @@ The installer deploys one shared policy core to `~/.md-paper/hooks/md_hook_polic
 - **OpenCode**: installs `~/.config/opencode/plugins/md-paper.js`, using `tool.execute.before` to call the same policy core.
 - **Hermes / other agents**: no adapter yet; use the rules below.
 
+> **Known Codex upstream regression (current as of 2026-07-28):** recent
+> Codex Desktop and some non-interactive CLI builds can discover a hook, show it
+> as Active/Trusted, yet never dispatch the handler. See
+> [openai/codex#21639](https://github.com/openai/codex/issues/21639). Registration,
+> Trust, restart, and a passing policy `--selftest` are not session-level proof.
+> For write-heavy `md-swarm` / `md-iterate`, only two explicit DENY results from
+> the live probe count.
+
 These hooks are **layer 2**. Layer 1 remains load-bearing: single-writer apply + citation/uniqueness/order gates. Codex's own documentation also describes current `PreToolUse` interception as a guardrail rather than a complete enforcement boundary, so keep [AGENTS.md](AGENTS.md) in every paper project:
 
 1. The rules in [AGENTS.md](AGENTS.md) — Codex / OpenCode / Hermes read that file automatically as workspace instructions.
@@ -128,6 +136,16 @@ For the session-level proof, run `md-swarm/probe_live_hooks.py --prepare`, perfo
 the two printed real tool calls, and require both to be explicitly **DENIED**.
 The filesystem `--check` result alone is not sufficient.
 
+If either real action lands:
+
+1. Stop all write-heavy md-paper work in that harness.
+2. If the adapter is missing or untrusted, install/review it once and open a
+   fresh session.
+3. If `/hooks` already shows Active/Trusted, **do not loop reinstall, Trust, or
+   restart**. Treat it as the upstream dispatch regression, switch to a harness
+   that passes both DENY checks (currently Claude Code is recommended), and
+   retest Codex only after its runtime or hook configuration actually changes.
+
 **OpenCode:** restart it (local plugins load at startup), then check the same core:
 
 ```powershell
@@ -161,7 +179,7 @@ Run Steps 1–5 above yourself in PowerShell, substituting the cloned repo path 
 
 - **Claude Code** — skills auto-load, plus the established protection hooks (layer 2).
 - **OpenCode** — reads `~/.claude/skills` natively; the installed local plugin supplies a best-effort layer-2 guard.
-- **Codex** — junction into `~/.codex/skills`; `hooks.json` supplies a best-effort layer-2 guard after `/hooks` trust review.
+- **Codex** — junction into `~/.codex/skills`; `hooks.json` supplies a conditional best-effort layer-2 guard after `/hooks` trust review. Current Desktop builds may not dispatch trusted hooks at all ([upstream #21639](https://github.com/openai/codex/issues/21639)); require two live DENY results before write-heavy use.
 - **Hermes Agent** — junction into `~/.hermes/skills` (Step 2). Compatible with the agentskills.io standard; supports `AGENTS.md` workspace instructions.
 - **Any other agent** — the five `SKILL.md` files are plain Markdown runbooks and every pipeline step is an ordinary CLI script (`py md-swarm\apply_md_changeset.py …`, `powershell md-build\build.ps1 …`). Tell the agent to read the relevant `SKILL.md` and follow it.
 - **Safety model everywhere**: the load-bearing protection is **layer 1, inside the scripts** — `apply_md_changeset.py` is the single writer of `manuscript.md`, with citation / uniqueness / order gates. Harness hooks/plugins are an additional best-effort layer 2; keep the [AGENTS.md](AGENTS.md) iron rules in front of every agent.
