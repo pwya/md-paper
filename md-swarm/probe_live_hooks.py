@@ -2,12 +2,12 @@
 """
 probe_live_hooks.py -- prepare and check a CURRENT-SESSION hook live probe.
 
-verify_hooks.ps1 proves that hook scripts and registration are correct. It cannot
-prove that the already-running Claude Code session has loaded that registration,
-because the harness snapshots hooks at session start.
+Static registration checks prove only that hook files/configuration exist. They
+cannot prove that the already-running Claude Code, Codex, or OpenCode session is
+routing its real tool calls through the adapter.
 
-This script prepares a harmless temporary md project. The *current assistant
-session* must then perform two tool calls that should be denied by hooks:
+This script prepares two isolated harmless temporary md projects. The *current
+assistant session* must then perform two tool calls that should be denied by hooks:
 
   1. Write directly to the protected manuscript.md -> md_protect_hook should deny.
   2. Run apply_md_changeset.py with a pending "机改" changeset -> md_swarm_gate_hook
@@ -75,17 +75,21 @@ def prepare(root=None):
     else:
         root = Path(tempfile.mkdtemp(prefix="md_live_hook_probe_")).resolve()
 
-    (root / "manifest").mkdir(parents=True, exist_ok=True)
-    (root / "swarm").mkdir(parents=True, exist_ok=True)
-    write_text(root / "manuscript.md", SENTINEL)
-    write_text(root / "swarm" / "md_triage.md", "> **人工确认：** 待确认\n")
-    make_changeset(root / "swarm" / "probe_changeset.json")
+    protect_root = root / "protect"
+    gate_root = root / "gate"
+    for project in (protect_root, gate_root):
+        (project / "manifest").mkdir(parents=True, exist_ok=True)
+        (project / "swarm").mkdir(parents=True, exist_ok=True)
+        write_text(project / "manuscript.md", SENTINEL)
+    write_text(gate_root / "swarm" / "md_triage.md", "> **人工确认：** 待确认\n")
+    make_changeset(gate_root / "swarm" / "probe_changeset.json")
 
     apply_py = suite_root() / "md-swarm" / "apply_md_changeset.py"
     state = {
         "root": str(root),
-        "manuscript": str(root / "manuscript.md"),
-        "changeset": str(root / "swarm" / "probe_changeset.json"),
+        "manuscript": str(protect_root / "manuscript.md"),
+        "gate_manuscript": str(gate_root / "manuscript.md"),
+        "changeset": str(gate_root / "swarm" / "probe_changeset.json"),
         "apply_py": str(apply_py),
         "protect_bad": PROTECT_BAD,
         "gate_bad": GATE_BAD,
@@ -98,12 +102,13 @@ def prepare(root=None):
 def print_instructions(state):
     root = state["root"]
     manuscript = state["manuscript"]
+    gate_manuscript = state["gate_manuscript"]
     changeset = state["changeset"]
     apply_py = state["apply_py"]
     check_cmd = 'py "%s" --check --root "%s"' % (Path(__file__).resolve(), root)
     cleanup_cmd = 'py "%s" --cleanup --root "%s"' % (Path(__file__).resolve(), root)
     gate_cmd = 'py "%s" --changeset "%s" --manuscript "%s" --allow-no-hooks' % (
-        apply_py, changeset, manuscript)
+        apply_py, changeset, gate_manuscript)
 
     print("=== md live hook probe prepared ===")
     print("probe root :", root)
@@ -112,12 +117,12 @@ def print_instructions(state):
     print("IMPORTANT: The next two actions must be real CURRENT-SESSION tool calls.")
     print("Do not replace them with direct script calls to the hook files.")
     print("")
-    print("ACTION 1 - use the assistant Write tool:")
+    print("ACTION 1 - Claude: Write/Edit; Codex: apply_patch:")
     print("  file_path:", manuscript)
     print("  content  :", PROTECT_BAD.rstrip("\n"))
     print("  EXPECTED : DENIED by md_protect_hook. If it writes, current-session protect hook is NOT live.")
     print("")
-    print("ACTION 2 - use the assistant PowerShell/Bash tool:")
+    print("ACTION 2 - Claude: PowerShell/Bash; Codex: shell_command:")
     print("  command  :", gate_cmd)
     print("  EXPECTED : DENIED by md_swarm_gate_hook. If it runs/applies, current-session gate hook is NOT live.")
     print("")
@@ -138,13 +143,17 @@ def load_state(root):
 def check(root):
     state = load_state(root)
     manuscript = Path(state["manuscript"])
-    if not manuscript.exists():
-        raise RuntimeError("probe manuscript missing: %s" % manuscript)
-    text = read_text(manuscript)
+    gate_manuscript = Path(state["gate_manuscript"])
+    for path in (manuscript, gate_manuscript):
+        if not path.exists():
+            raise RuntimeError("probe manuscript missing: %s" % path)
+    protect_text = read_text(manuscript)
+    gate_text = read_text(gate_manuscript)
 
-    protect_failed = PROTECT_BAD in text
-    gate_failed = GATE_BAD in text
-    ok = (not protect_failed) and (not gate_failed) and (text == SENTINEL)
+    protect_failed = PROTECT_BAD in protect_text
+    gate_failed = GATE_BAD in gate_text
+    ok = (not protect_failed) and (not gate_failed)
+    ok = ok and protect_text == SENTINEL and gate_text == SENTINEL
 
     print("=== md live hook probe check ===")
     print("root:", state["root"])
@@ -165,8 +174,10 @@ def check(root):
         return 0
 
     print("")
-    print("RESULT: FAIL -- current-session hook layer is not live. Open a brand-new Claude Code session,")
-    print("        run verify_hooks.ps1, then rerun this live probe before md-swarm/md-iterate writes.")
+    print("RESULT: FAIL -- current-session hook layer is not live.")
+    print("        Claude Code: run verify_hooks.ps1, then open a brand-new session.")
+    print("        Codex: rerun setup_all_hooks, review/trust it in /hooks, then restart Codex.")
+    print("        Rerun this live probe before md-swarm/md-iterate writes.")
     return 1
 
 
@@ -185,11 +196,12 @@ def selftest():
         if check(root) != 0:
             print("[FAIL] unchanged probe should check clean")
             return 1
-        write_text(root / "manuscript.md", PROTECT_BAD)
+        write_text(Path(load_state(root)["manuscript"]), PROTECT_BAD)
         if check(root) == 0:
             print("[FAIL] protect failure should be detected")
             return 1
-        write_text(root / "manuscript.md", GATE_BAD)
+        write_text(Path(load_state(root)["manuscript"]), SENTINEL)
+        write_text(Path(load_state(root)["gate_manuscript"]), GATE_BAD)
         if check(root) == 0:
             print("[FAIL] gate failure should be detected")
             return 1

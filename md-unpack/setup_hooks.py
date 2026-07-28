@@ -21,18 +21,34 @@ MD_HOOK_FILES = (
     'md_protect_hook.ps1',
     'md_swarm_gate_hook.ps1',
 )
-CMD_TMPL = (r'cmd /c powershell -NoProfile -ExecutionPolicy Bypass -File '
-            r'"%USERPROFILE%\.claude\skills\md-swarm\{}"')
+HOOK_DIR = os.path.join(os.path.expanduser('~'), '.claude', 'skills', 'md-swarm')
+RUNNER = os.path.join(HOOK_DIR, 'md_hook_runner.py')
+
+
+def hook_command(filename):
+    """Return the shell-neutral Claude hook command used on Windows/Git Bash."""
+    return ('py -X utf8 "' + RUNNER.replace('\\', '/') + '" --hook "'
+            + os.path.join(HOOK_DIR, filename).replace('\\', '/') + '"')
+
+
+def validate_transport_files():
+    missing = [path for path in [RUNNER] + [
+        os.path.join(HOOK_DIR, name) for name in MD_HOOK_FILES
+    ] if not os.path.isfile(path)]
+    if missing:
+        raise FileNotFoundError(
+            'Claude hook transport file(s) missing: ' + ', '.join(missing)
+        )
 
 
 def canonical_hooks_tree():
     return {'PreToolUse': [
         {'matcher': 'Write|Edit|MultiEdit',
-         'hooks': [{'type': 'command', 'command': CMD_TMPL.format(MD_HOOK_FILES[0])}]},
+         'hooks': [{'type': 'command', 'command': hook_command(MD_HOOK_FILES[0])}]},
         {'matcher': 'Write|Edit|MultiEdit|Bash|PowerShell',
-         'hooks': [{'type': 'command', 'command': CMD_TMPL.format(MD_HOOK_FILES[1])}]},
+         'hooks': [{'type': 'command', 'command': hook_command(MD_HOOK_FILES[1])}]},
         {'matcher': 'Bash|PowerShell',
-         'hooks': [{'type': 'command', 'command': CMD_TMPL.format(MD_HOOK_FILES[2])}]},
+         'hooks': [{'type': 'command', 'command': hook_command(MD_HOOK_FILES[2])}]},
     ]}
 
 
@@ -155,7 +171,10 @@ def selftest():
     commands = [h['command'] for g in merged['PreToolUse'] for h in g['hooks']]
     assert 'python user_hook.py' in commands
     assert 'python another.py' in commands
-    assert all(commands.count(CMD_TMPL.format(name)) == 1 for name in MD_HOOK_FILES)
+    assert all(commands.count(hook_command(name)) == 1 for name in MD_HOOK_FILES)
+    assert all('md_hook_runner.py' in command for command in commands
+               if any(name in command for name in MD_HOOK_FILES))
+    assert not any(command.lower().startswith('cmd /c') for command in commands)
     assert not any(c == 'powershell md_protect_hook.ps1' for c in commands)
     assert merged['PostToolUse'] == original['PostToolUse']
     assert merge_hooks(merged) == merged, 'installer must be idempotent'
@@ -197,6 +216,7 @@ def main():
         selftest()
         return 0
 
+    validate_transport_files()
     count = patch_live_settings(args.settings)
     print('[live] patched %s -> PreToolUse %d groups (unrelated hooks preserved)' %
           (args.settings, count))
