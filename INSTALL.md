@@ -36,6 +36,13 @@ $repo = (Get-Location).Path   # if the working dir IS the md-paper folder; other
 
 If the files aren't on disk yet, the user can obtain them either way: **Download ZIP** (the green **`< > Code` → Download ZIP** button on GitHub, then unzip) — or `git clone https://github.com/pwya/md-paper.git`. Then set `$repo` to that unzipped/cloned `md-paper` folder. Confirm it's right: `Test-Path (Join-Path $repo 'md-build\setup_md_tools.ps1')` should return `True`.
 
+> **OneDrive / synced source on a second computer:** syncing this repo or the
+> skill source folders transfers the code only. Junctions under
+> `~\.claude\skills` / `~\.codex\skills`, the pandoc bundle under
+> `%LOCALAPPDATA%`, hook configuration under `%USERPROFILE%`, CC Switch's local
+> database, and Codex `/hooks` trust are machine-local. Run Steps 2–5 once on
+> every computer; do not copy another computer's `config.toml` or trusted hash.
+
 ### Step 2 — Link the five skills into YOUR agent
 
 All five skills are standard **Agent Skills** ([agentskills.io](https://agentskills.io) `SKILL.md` format). Each tool discovers them from its own directory — link into every tool the user actually uses (several at once is fine):
@@ -136,7 +143,9 @@ Test-Path "$env:LOCALAPPDATA\md-pandoc"                                         
 
 Then restart the agent (skills and hooks/plugins are usually scanned at session start) and ask it: *"What md-paper skills can you see?"* — it should list all five.
 
-Current limitation: `preflight.py` still uses its older Claude-vs-non-Claude report and therefore describes Codex/OpenCode as layer-1-only even when the new adapter is installed. That message is not an install failure; preflight/live-probe integration is intentionally deferred to the next hardening pass.
+`preflight.py` statically audits Claude registration and CC Switch templates.
+In Codex/OpenCode it deliberately reports that the Claude audit is not
+applicable and requires the current-session live probe instead.
 
 ### Step 6 — Report
 

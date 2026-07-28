@@ -5,7 +5,9 @@
 
 ---
 
-## [未发版 / Unreleased] — main 分支上晚于 v0.11 的改动
+## [未发版 / Unreleased]
+
+## [v0.11.1] - 2026-07-28
 
 ### Codex Desktop 工具形状兼容 + Claude runner 加固
 
