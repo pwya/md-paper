@@ -31,14 +31,14 @@ allowed-tools: [Read, Write, PowerShell, Bash, Glob]
 
 1. **先查** `<项目目录>\reference.docx`：**在 → 跳过本步**（出稿回显时带一句"本次穿的马甲：项目 reference.docx"）；用户显式给了 `-Reference` → 也跳过。
 2. **不在 → AskUserQuestion 问一次**（三个显式选项，⛔ 别省）：
-   > ① **默认中文规格（推荐·现成马甲）**——正文 宋体·小四·1.5 倍行距；章节标题 三号黑体加粗；小节 四号黑体不加粗；图表题注 小四·1.5 倍·居中；**全文英文/数字统一 Times New Roman**（含标题里的英文——Word 每个样式自带"中文槽+西文槽"两个字体位，中英文自动各走各的，无需分段设置）；表格不动。
+   > ① **默认中文规格（推荐·现成马甲）**——正文 宋体·小四·1.5 倍行距、段前段后 0、首行缩进 2 字符；章节标题 三号黑体加粗；小节 四号黑体不加粗；图表题注 小四·单倍行距·段前段后 0·无首行缩进·居中；表格默认三线表（上/下 1.5pt、表头下 0.75pt、无竖线）并按内容自动调整列宽；**全文英文/数字统一 Times New Roman**（含标题里的英文——Word 每个样式自带"中文槽+西文槽"两个字体位，中英文自动各走各的，无需分段设置）。
    > ② **自定义**——追问四件（只这四件，**摘要/致谢等特殊件不管**，那是 Word 里手调的活）：正文（**中文字体**/字号/行距）、章节标题（**中文字体**/字号/粗否）、小节标题（同）、题注（字号/居中否）；**西文字体单独问一次、全文统一**（默认 Times New Roman，对应 `--body-latin`，标题/正文/题注共用）。
    > ③ **不排版**——pandoc 默认样式，回头自己在 Word 里调。
 3. **落地**：① → 把本 skill 的 `reference-cn.docx` **复制**为 `<项目目录>\reference.docx`；② → 跑
    ```
    py "<本 skill>\make_reference_cn.py" --out "<项目目录>\reference.docx" [--body-cn 宋体 --body-pt 12 --line 1.5 --chapter-pt 16 --section-pt 14 --caption-pt 12 ...]
    ```
-   （字号速查：三号=16pt·四号=14·小四=12·五号=10.5；参数全表 `--help`；脚本自带 10 项自检，FAIL 会报清楚）；③ → 什么都不放。
+   （字号速查：三号=16pt·四号=14·小四=12·五号=10.5；参数全表 `--help`；脚本自带确定性自检，FAIL 会报清楚）；③ → 什么都不放。
 4. **档位映射注意**（别搞反）：论文**章节**=md `##`=Word Heading2，**小节**=`###`=Heading3——生成器已按此约定挂衣服，`--chapter-*` 就是问用户的"一级标题"、`--section-*` 就是"二级标题"。
 
 ## 第 1 步 · 出稿（一条命令）
@@ -60,7 +60,7 @@ powershell -ExecutionPolicy Bypass -File "<本 skill>\build.ps1" -WorkDir "<项�
 
 > **live vs rebuild（都出"活 Zotero 域"，区别在数据来源）**：`rebuild` 把 ingest 时从 Word 域代码里抓下、存进 `objects.json` 的**原始 CSL+条目 key 离线拼回活域**——原有引用免开 Zotero、免对账。`live` 则现查运行中的 Zotero——能解析**改稿时新增**的、原稿里没有的引用。决策：**出稿模式必须显式选（建议用 AskUserQuestion 问用户）；用户没指定就默认 rebuild（活域·免开 Zotero）**。不加新文献 → rebuild；要加新文献 → 对账后走 live。⛔ **绝不默认 static**——static 把引用烤成**死文字**、只供离线校对，**不是最终稿**；要"活 Zotero 域"必须走 rebuild 或 live。md-unpack 跑完会打印这个分叉提示。
 
-可选：`-Out <路径>` 自定义输出；`-Reference <reference.docx>` 套期刊样式模板——**本 skill 自带一件中文规格样式马甲 `reference-cn.docx`（2026-07-11）**：正文 宋体/Times New Roman·小四·1.5 倍行距，章节标题（md `##`→Word Heading2）三号黑体加粗、小节（`###`→Heading3）四号黑体不加粗，图/表题注 小四·1.5 倍·居中，表格故意不动（作者规格）。用法两种：**项目目录放 `reference.docx` 会被自动穿**（首选·由第 0.5 步问询落地，逐次出稿零参数），或显式 `-Reference <路径>`（优先级更高）。⚠️ **标题档位按套件约定映射**：论文章节=md 二级 `##`=Heading2（Heading1 通常无人穿、已同样式兜底）。要改规格：`make_reference_cn.py` 带参数重跑（`--help` 全表·自带自检），别手改 docx。；`-SkipPreflight` 跳过下面的 Zotero 探活（仅在你确知 Zotero 已就绪、但探活端点被禁用时用）；`-SkipConservation` 跳过出稿后的「图/表/公式数量守恒」硬闸（仅在确知守恒闸误报时用）。
+可选：`-Out <路径>` 自定义输出；`-Reference <reference.docx>` 套期刊样式模板——**本 skill 自带一件中文规格样式马甲 `reference-cn.docx`（2026-07-11，2026-08-10 补正文段落、题注和三线表默认）**：正文 宋体/Times New Roman·小四·1.5 倍行距、段前段后 0、首行缩进 2 字符；章节标题（md `##`→Word Heading2）三号黑体加粗、小节（`###`→Heading3）四号黑体不加粗；图/表题注 小四·单倍行距·段前段后 0·无首行缩进·居中；普通表格为三线表并按内容自动调整列宽。用法两种：**项目目录放 `reference.docx` 会被自动穿**（首选·由第 0.5 步问询落地，逐次出稿零参数），或显式 `-Reference <路径>`（优先级更高）。⚠️ **标题档位按套件约定映射**：论文章节=md 二级 `##`=Heading2（Heading1 通常无人穿、已同样式兜底）。要改规格：`make_reference_cn.py` 带参数重跑（`--help` 全表·自带自检），别手改 docx。；`-SkipPreflight` 跳过下面的 Zotero 探活（仅在你确知 Zotero 已就绪、但探活端点被禁用时用）；`-SkipConservation` 跳过出稿后的「图/表/公式数量守恒」硬闸（仅在确知守恒闸误报时用）。
 
 > **live/smoke 出稿前自动「Zotero 探活」**：脚本会先探一下 `127.0.0.1:23119` 上的 Zotero + Better BibTeX。连不上就**直接中止**（不会闷头产出一份引用全废的 docx），并打印分诊清单：① Zotero 没开？② 没装/没启用 Better BibTeX？③ 代理（Clash 7890 / TUN）在拦 localhost？④ 端口被改？想离线先校对就 `-Mode static`。
 > **探活通过后还有「钥匙试锁」（2026-07-11·治真稿事故·手册 §10 P1-5）**：门开着 ≠ 钥匙配对——脚本会把全稿 citekey 真问一遍 Better BibTeX：**0 个能解析 = 临时 authorYear 命名空间**（md-unpack 选 (A) 从没对账），**当场中止**并打印两条修法（补跑 `reconcile_live.py` 后再 live / 不加新文献就改 `-Mode rebuild`）——绝不产出一份 56 个 "not found" 的稿让你满头雾水；**部分**解析不到只逐个点名放行（拼错 / `[@NEW:]` 残留 / 真新加没入库）。`-SkipPreflight` 连探活带试锁一并跳过。

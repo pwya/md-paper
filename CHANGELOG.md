@@ -7,6 +7,15 @@
 
 ## [未发版 / Unreleased]
 
+### 默认中文排版升级：三线表 + 段落/题注细节
+
+*(EN: upgrade the default Chinese layout — three-line tables, body paragraph spacing/indent, single-spaced captions.)*
+
+- `md-build` 默认中文马甲（`reference-cn.docx`）升级：正文样式补**段前段后 0、首行缩进 2 字符**；章节标题/小节保持原规格；图/表题注改**单倍行距·段前段后 0·无首行缩进·居中**。
+- 普通表格默认套**三线表**（上/下 1.5pt、表头下 0.75pt、无竖线）并按内容自动调整列宽——不再"表格不动"。
+- `make_reference_cn.py` 相应扩展：设置 `Normal`/`BodyText`/`FirstParagraph` 的段落间距与首行缩进、题注单倍行距无缩进、三线表边框 + 表头底线，并把新增项纳入确定性自检（新增 10+ 项校验）。
+- 内置 `reference-cn.docx` 已同步重新生成（2026-08-10）。
+
 ## [v0.11.2] - 2026-07-28
 
 ### Codex Hook 调度回归：响亮停机 + 文档勘误
