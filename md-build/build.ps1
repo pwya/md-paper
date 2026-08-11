@@ -224,8 +224,26 @@ if ($Mode -eq 'rebuild') {
   }
 }
 
-# --- assemble args (crossref MUST precede citeproc/zotero so it consumes @fig:/@tbl:) ---
-$args = @($src, '--filter', $crossref, '--resource-path', $WorkDir)
+# --- language detection + crossref prefix metadata (2026-08-11) ---
+# Detect zh/en by CJK character ratio, then write a small metadata file so
+# pandoc-crossref renders figure/table references as "Figure 1"/"Table 1" (en) or
+# "图 1"/"表 1" (zh). File stays ASCII-only: Chinese values are built from code
+# points, never literal characters (PS 5.1 would garble them).
+$srcText = ''
+try { $srcText = Get-Content $src -Raw -Encoding UTF8 } catch {}
+$cjkCount = ([regex]::Matches($srcText, '[\u4e00-\u9fff]')).Count
+$lang = 'en'
+if ($srcText.Length -gt 0 -and (($cjkCount / $srcText.Length) -gt 0.03)) { $lang = 'zh' }
+$figPrefix = 'Figure'; $tblPrefix = 'Table'
+if ($lang -eq 'zh') { $figPrefix = [string][char]0x56FE; $tblPrefix = [string][char]0x8868 }
+$metaPath = Join-Path (Split-Path $Out) 'md_crossref_meta.yaml'
+[System.IO.File]::WriteAllText($metaPath, ("figPrefix: " + $figPrefix + "`ntblPrefix: " + $tblPrefix + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+Write-Host ("[style] crossref prefix: " + $lang + " (fig=" + $figPrefix + ", tbl=" + $tblPrefix + ")")
+
+# --- assemble args (dedup lua filter MUST run before crossref so the Cite nodes are
+# still intact; crossref MUST precede citeproc/zotero so it consumes @fig:/@tbl:) ---
+$args = @($src, '--lua-filter', (Join-Path $here 'dedup_crossref_prefix.lua'),
+          '--filter', $crossref, '--resource-path', $WorkDir, '--metadata-file', $metaPath)
 if     ($Mode -eq 'static')  { $args += @('--citeproc','--bibliography',$Bib) }
 elseif ($Mode -eq 'rebuild') { $args += @('--lua-filter',$zoff) }
 else                         { $args += @('--lua-filter',$zlua) }
@@ -281,6 +299,17 @@ try {
 } catch {}
 $o = Get-Item $Out -ErrorAction SilentlyContinue
 if ($o) {
+  # --- post-build LAYOUT pass: blank lines around figure/table blocks, note de-indent ---
+  # Only touches the produced docx (never manuscript.md). Fails loudly if it cannot run.
+  $layout = Join-Path $here 'postprocess_layout.py'
+  $pyL = Get-Command py -ErrorAction SilentlyContinue
+  if (-not $pyL) { $pyL = Get-Command python -ErrorAction SilentlyContinue }
+  if ((Test-Path $layout) -and $pyL) {
+    & $pyL.Source $layout --docx $Out
+    if ($LASTEXITCODE -ne 0) { throw "postprocess_layout.py failed on $Out (see above)." }
+  } else {
+    Write-Host "[postflight] layout postprocess SKIPPED (postprocess_layout.py or python not available)."
+  }
   # --- post-build HARD GATE: word/document.xml MUST be well-formed XML ---
   # A single XML-illegal char (e.g. U+0001 from a flattened Word object/field) makes document.xml
   # non-well-formed, and Word silently refuses to open the file while pandoc still exits 0. Catch it

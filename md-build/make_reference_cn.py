@@ -89,6 +89,17 @@ def patch(style, *, east, latin, sz_half, bold=None, line=None, center=False,
     if center:
         ensure(ppr, 'jc').set(q('val'), 'center')
 
+
+def set_black(style):
+    """Force a style's text color to black (removes the default blue/gray theme color)."""
+    rpr = ensure(style, 'rPr')
+    color = ensure(rpr, 'color')
+    color.set(q('val'), '000000')
+    color.attrib.pop(q('themeColor'), None)
+    color.attrib.pop(q('themeShade'), None)
+    color.attrib.pop(q('themeTint'), None)
+
+
 def set_border(parent, tag, *, val, size, color):
     border = ensure(parent, tag)
     border.set(q('val'), val)
@@ -148,6 +159,12 @@ def build(cfg, out_path):
     patch(styles['Heading3'], east=cfg['section_cn'], latin=cfg['body_latin'],
           sz_half=half(cfg['section_pt']), bold=cfg['section_bold'], line=ln,
           before=0, after=0, first_line_chars=0, first_line_dxa=0)
+    # All headings black (author spec: 所有标题标黑). H4-H9 keep the default pandoc
+    # fonts/sizes -- only their color is forced to black.
+    for i in ('Heading1', 'Heading2', 'Heading3', 'Heading4', 'Heading5',
+              'Heading6', 'Heading7', 'Heading8', 'Heading9'):
+        if i in styles:
+            set_black(styles[i])
     for i in ('ImageCaption', 'TableCaption', 'Caption'):
         if i in styles:
             patch(styles[i], east=cfg['body_cn'], latin=cfg['body_latin'],
@@ -202,6 +219,15 @@ def verify(out_path, cfg):
         ('Chapter(H2) cn', got('Heading2', ['rPr', 'rFonts'], 'eastAsia'), cfg['chapter_cn']),
         ('Chapter(H2) latin', got('Heading2', ['rPr', 'rFonts'], 'ascii'), cfg['body_latin']),
         ('Section(H3) latin', got('Heading3', ['rPr', 'rFonts'], 'ascii'), cfg['body_latin']),
+        ('H1 black', got('Heading1', ['rPr', 'color'], 'val'), '000000'),
+        ('H2 black', got('Heading2', ['rPr', 'color'], 'val'), '000000'),
+        ('H3 black', got('Heading3', ['rPr', 'color'], 'val'), '000000'),
+        ('H4 black', got('Heading4', ['rPr', 'color'], 'val'), '000000'),
+        ('H5 black', got('Heading5', ['rPr', 'color'], 'val'), '000000'),
+        ('H6 black', got('Heading6', ['rPr', 'color'], 'val'), '000000'),
+        ('H7 black', got('Heading7', ['rPr', 'color'], 'val'), '000000'),
+        ('H8 black', got('Heading8', ['rPr', 'color'], 'val'), '000000'),
+        ('H9 black', got('Heading9', ['rPr', 'color'], 'val'), '000000'),
         ('Caption latin', got('ImageCaption', ['rPr', 'rFonts'], 'ascii'), cfg['body_latin']),
         ('Chapter(H2) sz', got('Heading2', ['rPr', 'sz'], 'val'), half(cfg['chapter_pt'])),
         ('Section(H3) sz', got('Heading3', ['rPr', 'sz'], 'val'), half(cfg['section_pt'])),

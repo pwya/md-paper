@@ -6,6 +6,15 @@
 ---
 
 ## [未发版 / Unreleased]
+### 出稿自动排版：图表上下空行 + 引用前缀中英 + 标题全黑
+
+*(EN: post-build layout pass -- blank lines around figure/table blocks, de-indented notes, automatic Figure/Table vs 图/表 reference prefixes, all headings black.)*
+
+- 新增出稿后处理 `postprocess_layout.py`（带 `--selftest`）：每个图块（图→图题）和表块（表题→表→注释）前后插入**真实空段落**，形成 `空行→题注→对象→注释→空行` 版式；注释段自动去掉首行缩进。注释识别用"紧邻块 + 段首白名单"（`Note:`/`Source:`/`Data source:`/`Figure note:`/`Table note:` 与 `注：`/`资料来源：`/`数据来源：`/`图注：`/`表注：` 等，大小写不敏感），`Note that ...` 不误判。
+- 新增 `dedup_crossref_prefix.lua` + `build.ps1` 语言检测：按正文中文字符占比自动判定，英文稿引用渲染为 `Figure 1`/`Table 1`，中文稿为 `图 1`/`表 1`；同时自动去掉正文手打的重复前缀（`Figure [@fig:1]` → `Figure 1`），修掉 `Figure fig. 1` 类重复。只改出稿产物，`manuscript.md` 一个字不动（单写者铁律）。
+- `make_reference_cn.py`：**所有标题（Heading1–Heading9）统一黑色**（清除 pandoc 默认的蓝色/灰色主题色），自检新增 9 项颜色校验；`reference-cn.docx` 同步重新生成。
+- `build.ps1` 接线：pandoc 参数加 `dedup_crossref_prefix.lua`（在 crossref 之前）+ 按语言生成 `build/md_crossref_meta.yaml`（`--metadata-file`），出稿后跑 `postprocess_layout.py`，再走既有 XML 良构闸与数量守恒闸。
+- 已知边界：Word 原生"交叉引用"对话框引用图/表仍不可用（pandoc 图题/表题不是 Word 题注域）；正文请用 `[@fig:1]`/`[@tbl:1]` 交叉引用。
 
 ### 默认中文排版升级：三线表 + 段落/题注细节
 
