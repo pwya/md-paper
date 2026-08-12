@@ -1,4 +1,4 @@
-# unpack.ps1 -- md-unpack orchestrator: ingest manifest -> pandoc manuscript.md.
+﻿# unpack.ps1 -- md-unpack orchestrator: ingest manifest -> pandoc manuscript.md.
 # Prereq: just the source .docx. If there's no manifest/ yet, this runs the BUNDLED ingest
 #         (Word COM) internally to build it (manuscript.md + objects.json + images/) -- no docx-* skill needed.
 # Steps: (1) pandoc direct-convert the docx (for OMML LaTeX harvest) -> build/direct.md
@@ -111,6 +111,21 @@ if (-not $Title) {
 if ($Title)  { $pyArgs += @('--title', $Title) }
 & $pyExe.Source @pyArgs
 if ($LASTEXITCODE -ne 0) { throw "transform.py failed (exit $LASTEXITCODE) -- manuscript.md may be missing or partial; see the output above." }
+
+# ---- formula self-check (T21-2b gate): residual placeholders + ground-truth audit ----
+# Runs right after transform so a re-parse SURFACES leftover [EQ-OMML-N] tokens or misaligned
+# formulas instead of shipping them to the manuscript silently. Hard-fail on residual/mismatch;
+# on PASS it prints the verified counts, so the author sees this output on every unpack.
+$verifyFormulas = Join-Path $here 'verify_formulas.py'
+if (Test-Path $verifyFormulas) {
+  Write-Host ""
+  Write-Host "formula self-check (verify_formulas.py) ..."
+  & $pyExe.Source $verifyFormulas --manuscript $outMd --direct $direct
+  if ($LASTEXITCODE -ne 0) {
+    throw "verify_formulas.py FAILED (exit $LASTEXITCODE): leftover placeholders or misaligned formulas -- fix the source/skill before proceeding (see report above)."
+  }
+  Write-Host "formula self-check: PASS (0 residual, 0 mismatch)"
+}
 
 # ---- harvest Word comments (批注) if the source docx has any ----
 # Comments are REVISION INTENT, not manuscript content: while the docx is already open we only

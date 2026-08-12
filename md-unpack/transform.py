@@ -46,18 +46,27 @@ direct = open(a.direct_md, encoding='utf-8').read() if (a.direct_md and os.path.
 # NOTE: covers the U+1D400-1D7FF block only -- italic lowercase 'h' and the script/fraktur/double-
 # struck "holes" live in BMP letterlike symbols (e.g. U+210E) and are not folded; harmless here
 # because the only math-styled placeholder is [EQ-OMML-N] (uppercase E,Q,O,M,L, all in-block).
+_DASH_TO_HYPHEN = {0x2010:'-', 0x2011:'-', 0x2012:'-', 0x2013:'-', 0x2014:'-', 0x2212:'-'}
 def _fold_math_glyphs(tok):
     out = []
     for ch in tok:
-        if 0x1D400 <= ord(ch) <= 0x1D7FF:
+        o = ord(ch)
+        if 0x1D400 <= o <= 0x1D7FF:
             out.append(unicodedata.normalize('NFKC', ch))
-        elif ord(ch) == 0x2212:   # MINUS SIGN -> ASCII HYPHEN-MINUS (NFKC leaves U+2212 as-is)
-            out.append('-')
+        elif o in _DASH_TO_HYPHEN:          # dash family -> ASCII HYPHEN-MINUS (NFKC leaves these as-is)
+            out.append(_DASH_TO_HYPHEN[o])
+        elif 0xFF01 <= o <= 0xFF5E:         # fullwidth ASCII -> ASCII (explicit, whitelist)
+            out.append(chr(o - 0xFEE0))
         else:
             out.append(ch)
     return ''.join(out)
 
-_MATH_PH = re.compile(r'\[[^\[\]\n]*[\U0001D400-\U0001D7FF][^\[\]\n]*\]')
+_MATH_PH = re.compile(r'\[[^\[\]\n]*(?:[\U0001D400-\U0001D7FF]|\u2212)[^\[\]\n]*\]')
+# T21-2b (2026-08-11): trigger must ALSO fire on a token whose separator was restyled to
+# U+2212 while the letters stayed ASCII ("[EQ-OMML-N]") -- the old math-char-only trigger
+# let 31 such tokens leak into a real manuscript. Whitelist (6.5-1): only restyled-signature
+# tokens are folded; caption content like "[FIG-1: ... 2012-2022]" (U+2013, no signature) is
+# left byte-identical.
 md = _MATH_PH.sub(lambda m: _fold_math_glyphs(m.group(0)), md)
 
 # ---------- 1. citation: [CITE-N] -> [citekey,...] + CSL-JSON bib ----------

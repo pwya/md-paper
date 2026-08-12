@@ -6,6 +6,15 @@
 ---
 
 ## [未发版 / Unreleased]
+
+### md-unpack 公式占位符整类修复 + 公式验证闸
+
+*(EN: fix the OMML placeholder-leak class (U+2212 restyled separator) in md-unpack and add a verify_formulas gate so every unpack prints a formula self-check.)*
+
+- `md-unpack/transform.py`：把「数学字母折叠」从单一黑名单扩成**白名单字符族**——U+2010–U+2014 破折号族、U+2212 减号、U+FF01–U+FF5E 全角 ASCII 全部折回 ASCII；触发正则放宽到含 `U+2212` 也会折叠。修掉一类真实事故：Word 把 OMath 占位符的分隔连字符重排成 U+2212 减号（字母仍是普通 ASCII），旧逻辑只认数学字母块 U+1D400，导致 `[EQ−OMML−N]` 以 31 个残留在真实 `manuscript.md` 里漏网。白名单保证题注里的合法区间横线（如 `2012–2022`）不被误折。
+- 新增 `md-unpack/verify_formulas.py`：①残留扫描——任何没转换掉的 `[EQ-OMML-N]` 都是硬失败；②真源对位审计——把正文每个 `$...$` 公式用「局部上下文重叠打分」在 pandoc 直转的 `build/direct.md` 里找唯一槽位，逐公式字节级比对；③公式总数概览。已接入 `unpack.ps1` 的 transform 之后：每次摄取都会在终端打印 `formula self-check` 的残留数/匹配数/结果，失败即硬停，成功打印 PASS。
+- 新增回归测试 `_test_t21_fixes.py::test_omml_placeholder_fold_minus_form`（6 条断言，覆盖 U+2212 牌、U+2013/U+FF0D 家族、数学斜体牌、题注牌不误伤）；整套 `_test_t21_fixes.py` 全过。
+
 ### 出稿自动排版：图表上下空行 + 引用前缀中英 + 标题全黑
 
 *(EN: post-build layout pass -- blank lines around figure/table blocks, de-indented notes, automatic Figure/Table vs 图/表 reference prefixes, all headings black.)*

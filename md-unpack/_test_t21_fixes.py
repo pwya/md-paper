@@ -8,17 +8,21 @@ import re, unicodedata
 # OMML placeholder into a math zone, so Word returns "[EQ-OMML-N]" as Mathematical Alphanumeric
 # Symbols (U+1D400-1D7FF) + MINUS SIGN (U+2212). Folding restores the ASCII the downstream
 # matchers expect (the count regex r'\[EQ-OMML-\d+\]', _PH_INLINE, the [EQ-OMML-N] substitution).
+_DASH_TO_HYPHEN = {0x2010:'-', 0x2011:'-', 0x2012:'-', 0x2013:'-', 0x2014:'-', 0x2212:'-'}
 def _fold_math_glyphs(tok):
     out = []
     for ch in tok:
-        if 0x1D400 <= ord(ch) <= 0x1D7FF:
+        o = ord(ch)
+        if 0x1D400 <= o <= 0x1D7FF:
             out.append(unicodedata.normalize('NFKC', ch))
-        elif ord(ch) == 0x2212:
-            out.append('-')
+        elif o in _DASH_TO_HYPHEN:
+            out.append(_DASH_TO_HYPHEN[o])
+        elif 0xFF01 <= o <= 0xFF5E:
+            out.append(chr(o - 0xFEE0))
         else:
             out.append(ch)
     return ''.join(out)
-_MATH_PH = re.compile(r'\[[^\[\]\n]*[\U0001D400-\U0001D7FF][^\[\]\n]*\]')
+_MATH_PH = re.compile(r'\[[^\[\]\n]*(?:[\U0001D400-\U0001D7FF]|\u2212)[^\[\]\n]*\]')
 def fold(md): return _MATH_PH.sub(lambda m: _fold_math_glyphs(m.group(0)), md)
 
 def test_omml_placeholder_fold():
@@ -42,6 +46,26 @@ def test_omml_placeholder_fold():
     assert fold("E = mc^2 with \U0001D438 free") == "E = mc^2 with \U0001D438 free"
     print("[OK] Bug T21-2 OMML math-glyph fold: 8 assertions pass")
 
+
+def test_omml_placeholder_fold_minus_form():
+    # T21-2b (2026-08-11, real manuscript): Word restyled ONLY the separator hyphen to U+2212
+    # while the letters stayed plain ASCII -> "[EQ-OMML-N]". The old trigger required a U+1D400
+    # math-alphanumeric char, so these were never folded and 31 leaked into manuscript.md.
+    # The trigger now ALSO fires on U+2212; inside a fired token the whole dash family + fullwidth
+    # ASCII fold to ASCII (whitelist, dev handbook 6.5-1).
+    assert fold("[EQ\u2212OMML\u221234]") == "[EQ-OMML-34]", repr(fold("[EQ\u2212OMML\u221234]"))
+    # mixed with the classic math-styled form on one line
+    src = "x [EQ\u2212OMML\u221247] and [\U0001D438\U0001D444\u2212\U0001D442\U0001D440\U0001D440\U0001D43F\u22121]"
+    folded = fold(src)
+    assert "[EQ-OMML-47]" in folded and "[EQ-OMML-1]" in folded, repr(folded)
+    assert len(re.findall(r'\[EQ-OMML-\d+\]', folded)) == 2, folded
+    # dash family (U+2013) and fullwidth hyphen (U+FF0D) inside a fired token also fold
+    assert fold("[\U0001D438\U0001D444\u2212OMML\u201335]") == "[EQ-OMML-35]"
+    assert fold("[\U0001D438\U0001D444\u2212OMML\uFF0D36]") == "[EQ-OMML-36]"
+    # caption content with an en-dash but NO restyle signature is left byte-identical
+    cap = "[FIG-1: Figure 1: Mean government trust across CFPS waves, 2012\u20132022]"
+    assert fold(cap) == cap, repr(fold(cap))
+    print("[OK] Bug T21-2b OMML minus-form / dash-family fold: 6 assertions pass")
 # ---- Bug T21-3: residual-marker counter must catch ANY leftover placeholder shape ----
 # MUST mirror transform.py's residual-markers regex exactly. Escape range (not astral literal):
 # U+1D400-1D7FF = Mathematical Alphanumeric Symbols block (covers mathbold 𝐸𝑄𝑂𝑀𝑀𝐿 etc.).
@@ -308,6 +332,7 @@ def test_t21_5_captions_and_homes():
 
 if __name__ == "__main__":
     test_omml_placeholder_fold()
+    test_omml_placeholder_fold_minus_form()
     test_residual_counter()
     test_xref_sec_cleanup()
     test_xref_sec_loud_removal()
