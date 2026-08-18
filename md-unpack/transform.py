@@ -261,6 +261,7 @@ if _fm_start is not None:
     md = '\n'.join(_fm_lines)
 
 lines = md.split('\n'); out=[]; i=0
+_tbl_dump_eaten=0; _tbl_dump_suspect=[]   # T22: cell-dump skip bookkeeping (whitelist + loud report)
 while i < len(lines):
     ln = lines[i]; fm = re.match(r'^\[FIG-(\d+):\s*(.*?)\]\s*$', ln.strip())
     tm = re.match(r'^\[TBL-(\d+)\]\s*$', ln.strip()); em = re.match(r'^\[EQ-(\d+)\]\s*$', ln.strip())
@@ -275,12 +276,48 @@ while i < len(lines):
         for bi in range(len(out)-1, max(0,len(out)-4), -1):
             if re.match(r'^Table\b', out[bi].strip()): cap=strip_tbl(out[bi].strip()); out[bi]='__DROP__'; break
         out += ['', ph.get(f"[TBL-{n}]",{}).get('md','').strip(), '', (f": {cap} {{#tbl:{n}}}" if cap else f": Table {n} {{#tbl:{n}}}"), '']
-        j=i+1
+        # T22 (2026-08-18, real-paper table-dump bug): skip the ingest cell-dump with a WHITELIST,
+        # not the old len<=40 shape-guess. Phase-2's table->"[TBL-N]" replacement does NOT remove the
+        # table (assigning .Text to a table range only clobbers the first cell), so phase-3's paragraph
+        # walk dumps every remaining cell as its own line right after [TBL-N]. The old heuristic broke
+        # at the first LONG cell (a 52-char coding cell leaked the rest of Table 2 into the manuscript)
+        # and silently ATE any short non-period prose line that followed a table. Now a line is dropped
+        # only if it exactly equals one of THIS table's rendered cells: whitespace-normalized, and
+        # Render-TableMd's '\|' escape undone so pipe-bearing cells still match. Anything else stops
+        # the loop and STAYS in the manuscript (6.5-1 whitelist over denylist). If the stop line still
+        # looks dump-shaped after >=1 cell was consumed (escape / multi-paragraph-cell mismatch), it
+        # is reported loudly at the end instead of guessed at (6.5-5). Mirrored in
+        # _test_t21_fixes.py::test_tbl_dump_whitelist_skip.
+        cells=set()
+        if f"[TBL-{n}]" in ph:
+            for _ln in (ph[f"[TBL-{n}]"].get('md') or '').split('\n'):
+                if _ln.strip().startswith('|'):
+                    # split on UNescaped pipes only, then undo Render-TableMd's '\|' escape, so a
+                    # cell that itself contains '|' still matches the raw-pipe dump line
+                    for _c in re.split(r'(?<!\\)\|', _ln):
+                        # the section-0 math-glyph fold already ran on the manifest text, so a dump
+                        # line like '[−0.8338, −0.4502]' (U+2212 minus, bracketed) was folded to
+                        # ASCII '-' in place; apply the SAME fold to the cell or CI cells never match
+                        _c=_MATH_PH.sub(lambda m: _fold_math_glyphs(m.group(0)), _c)
+                        _c=' '.join(_c.replace('\\|','|').split())
+                        if _c and not re.match(r'^-+$', _c): cells.add(_c)
+        else:
+            _tbl_dump_suspect.append((n, '(no objects.json entry)', 'table md missing; dump cannot be filtered'))
+        eaten=0; j=i+1
         while j<len(lines):
             s=lines[j].strip()
             if s=='': j+=1; continue
-            if len(s)<=40 and not s.endswith('.') and not s.startswith('#') and not s.startswith('!['): j+=1; continue
+            # the §2.5 prose escaper ran BEFORE this loop, so a dump line carries Markdown escapes
+            # ('admin\_burden', '\[-0.83, -0.45\]') while the whitelist holds RAW cells -- undo the
+            # escapes (same char set the escaper uses) before comparing, or these lines never match
+            # (this exact mismatch fired the suspect-WARN 15x on the first real-corpus run).
+            if ' '.join(re.sub(r'\\([\\`*_\[\]$<|~^@])', r'\1', s).split()) in cells: eaten+=1; j+=1; continue
             break
+        _tbl_dump_eaten+=eaten
+        if eaten and j<len(lines):
+            _s=lines[j].strip()
+            if len(_s)<=40 and not _s.endswith('.') and not _s.startswith('#') and not _s.startswith('!['):
+                _tbl_dump_suspect.append((n, _s[:40], 'line right after a partially-consumed dump still looks like a cell'))
         i=j; continue
     if em:
         n=em.group(1); out.append(f"$$\\text{{[TODO: AxMath eq {n} -- re-enter LaTeX; preview images/eq_{n}_preview.wmf]}}$$ {{#eq:{n}}}"); i+=1; continue
@@ -479,6 +516,7 @@ print("unique citekeys:", len(bib), "| CITE placeholders:", len(cite_keys),
       "| invisible ws normalized:", _invis_n,
       "| xml-illegal ctrl stripped:", _ctrl_n,
       "| prose md-escaped:", _esc_count,
+      "| tbl dump cells skipped (T22):", _tbl_dump_eaten,
       # residual markers: count ANY leftover placeholder shape, not a fixed whitelist.
       # Old regex required `XREF-` then a DIGIT, so it silently missed `[XREF-SEC-9]` (SEC in the
       # middle) and the Unicode math-alphanumeric `[EQ-OMML-N]` written in mathbold -> reported 4
@@ -488,6 +526,12 @@ print("unique citekeys:", len(bib), "| CITE placeholders:", len(cite_keys),
       # garbling a 4-byte char). Won't hit `[@fig:1]`/`[Smith 2020]`/`[TODO:…]` (@ / lower / : block it).
       "| residual markers:",
       len(re.findall(r'\[(?:[A-Z]+-)+[A-Za-z0-9]' + '|\\[[\U0001D400-\U0001D7FF]', md_out)))
+if _tbl_dump_suspect:
+    print('WARN: %d suspicious line(s) where the [TBL-N] cell-dump skip stopped early (T22) -- '
+          'these were KEPT in the manuscript; check whether each is real prose or an unmatched '
+          'table cell (multi-paragraph cell / escaping mismatch), and delete by hand if junk:' % len(_tbl_dump_suspect))
+    for _n, _ex, _why in _tbl_dump_suspect:
+        print('   TBL-%s: %r (%s)' % (_n, _ex, _why))
 if _unanchored:
     _cap_note = ', '.join('fig %s' % n for n, _ in _unanchored if n in _true_caps)
     _home_note = '; '.join('fig %s -> %s (~%.0f%%)' % (n, _homes[n][0], _homes[n][1])

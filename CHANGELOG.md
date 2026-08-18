@@ -7,6 +7,15 @@
 
 ## [未发版 / Unreleased]
 
+### md-unpack 表格倾倒泄漏修复（`[TBL-N]` 白名单式跳过）
+
+*(EN: replace the len<=40 shape-guess that swept ingest's table cell-dump after [TBL-N] with an exact cell whitelist -- long cells (52/65 chars) no longer leak into manuscript.md, short prose after tables is no longer silently eaten.)*
+
+- `md-unpack/transform.py`：`[TBL-N]` 后的"一格一段"倾倒清理从 `len(s)<=40` 黑名单猜测改为**单元格白名单精确比对**（§6.5① 白名单>黑名单）--从 `objects.json` 该表的 `md` 管道表解析全部单元格原文建集合，倾倒行逐行比对，是本表格子才跳过、其余原样保留。根因是 ingest 阶段 2 的表格→占位符替换实际没有删掉表格（对表格范围赋 `.Text` 只覆盖了第一个单元格），阶段 3 段落遍历把其余格子当正文倾倒进 manifest；旧补丁在第一个超过 40 字符的格子处断裂（真实事故：一张变量定义表的 52/65 字符编码格泄漏 116 行碎片进 `manuscript.md`），且会静默误吃表格后不带句号的短正文行。比对前做三步归一（全部来自真语料实跑暴露）：还原 §2.5 prose 转义器的转义、单元格侧跑同一个 T21-2 数学字形折叠（U+2212 负号置信区间格）、按未转义管道切分＋还原 `\|` 转义＋空白归一。
+- 收尾报告新增计数 `tbl dump cells skipped` ＋ **响亮 WARN**：跳过中途停在一行"仍像格子"的行上时逐条点名报告（§6.5⑤ 失败要响亮），不再静默处理；第一轮实跑该 WARN 即逮住转义器顺序与 U+2212 折叠两处假不匹配。
+- 新增回归测试 `_test_t21_fixes.py::test_tbl_dump_whitelist_skip`（12 条断言，与 transform.py 镜像：长格子被吃、短正文保留、转义/折叠/管道三归一、空表兜底）；整套 `_test_t21_fixes.py` 全过。真稿冒烟：修复前后 `manuscript.md` diff＝删 116 行泄漏碎片、增 0 行，其余 17 张表逐字不变。
+- 已知边界（未在本版处理）：ingest 阶段 2 治根（让替换真正删除表格）仍挂起；白名单对干净 manifest 空转无害。单元格内含多段落文字时可能对不上--此时行被保留并由 WARN 点名，交还人工判断，绝不静默吞。
+
 ### md-unpack 公式占位符整类修复 + 公式验证闸
 
 *(EN: fix the OMML placeholder-leak class (U+2212 restyled separator) in md-unpack and add a verify_formulas gate so every unpack prints a formula self-check.)*

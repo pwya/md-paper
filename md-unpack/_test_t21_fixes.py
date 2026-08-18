@@ -330,6 +330,96 @@ def test_t21_5_captions_and_homes():
         assert home == want, (rid_token, home)
     print("[OK] T21-5 C3/C4 captions+homes: 9 assertions pass")
 
+# ---- T22 (2026-08-18, real-paper table-dump bug): [TBL-N] cell-dump skip is a WHITELIST ----
+# MUST mirror transform.py's [TBL-N] skip block exactly. ingest's phase-2 table->placeholder
+# replacement does NOT delete the table (the COM .Text assignment only clobbers the FIRST cell),
+# so phase-3 dumps every remaining cell as its own line right after [TBL-N]. The old len<=40
+# shape-guess (a) broke at the first long cell -- a 52-char coding cell leaked the rest of Table 2
+# into the real manuscript -- and (b) silently ATE any short non-period PROSE line after a table.
+# The fix drops a line only if it exactly equals one of THIS table's rendered cells (whitelist,
+# 6.5-1): whitespace-normalized, Render-TableMd's '\|' escape undone, separator '---' excluded.
+def tbl_cells(tbl_md):
+    cells = set()
+    for ln in (tbl_md or '').split('\n'):
+        if ln.strip().startswith('|'):
+            # split on UNescaped pipes only (an in-cell '\|' must not break the cell), then undo
+            # Render-TableMd's '\|' escape -- mirrors transform.py exactly
+            for c in re.split(r'(?<!\\)\|', ln):
+                # the section-0 math-glyph fold ran on the manifest BEFORE this loop: a bracketed
+                # token with U+2212 (CI cell '[−0.83, −0.45]') got folded to ASCII '-'; the SAME
+                # fold must run on the cell or CI cells never match (real-corpus: 7 tables hit this)
+                c = _MATH_PH.sub(lambda m: _fold_math_glyphs(m.group(0)), c)
+                c = ' '.join(c.replace('\\|', '|').split())
+                if c and not re.match(r'^-+$', c): cells.add(c)
+    return cells
+
+def skip_dump(lines, tbl_md, start=0):
+    """Mirror of the transform.py skip loop; returns (stop_index, eaten_count)."""
+    cells = tbl_cells(tbl_md); j = start; eaten = 0
+    while j < len(lines):
+        s = lines[j].strip()
+        if s == '': j += 1; continue
+        # the §2.5 prose escaper runs BEFORE the loop, so dump lines arrive Markdown-escaped while
+        # the whitelist holds RAW cells -- undo the escapes (the escaper's own char set) first.
+        # On the first real-corpus run this mismatch broke 15 tables ('admin\_burden' vs 'admin_burden').
+        if ' '.join(re.sub(r'\\([\\`*_\[\]$<|~^@])', r'\1', s).split()) in cells: eaten += 1; j += 1; continue
+        break
+    return j, eaten
+
+def test_tbl_dump_whitelist_skip():
+    tbl2_md = ("| Variable | Description | Role | Coding |\n"
+               "| --- | --- | --- | --- |\n"
+               "| trust | Trust in local government officials | Outcome | 0–10 |\n"
+               "| admin_burden | Administrative-burden exposure | Treatment | 1 from the first reported burden onward; 0 otherwise |\n"
+               "| polit_capi | Government-employment connection | Control | 1 if the respondent or an immediate family member works in government |\n"
+               "| income | Annual individual income | Control | Continuous; winsorized at the 99th percentile |")
+    # (a) the real Table-2 dump: LONG cells (52/65/46 chars) must all be eaten -- the old len<=40
+    #     heuristic broke at the first one and leaked the rest
+    dump = ['Description', 'Role', 'Coding', 'trust', 'Trust in local government officials',
+            'Outcome', '0–10', 'admin_burden', 'Administrative-burden exposure', 'Treatment',
+            '1 from the first reported burden onward; 0 otherwise',
+            'polit_capi', 'Government-employment connection', 'Control',
+            '1 if the respondent or an immediate family member works in government',
+            'income', 'Annual individual income',
+            'Continuous; winsorized at the 99th percentile']
+    j, eaten = skip_dump(dump, tbl2_md)
+    assert j == len(dump) and eaten == len(dump), (j, eaten)   # every cell line consumed, nothing leaked
+    # (b) the other face of the old bug: SHORT PROSE right after the dump must SURVIVE
+    #     ("Standard errors in parentheses" = 30 chars, no period -- the heuristic ate it)
+    lines = dump + ['Standard errors in parentheses', '', 'Next paragraph starts here.']
+    j2, _ = skip_dump(lines, tbl2_md)
+    assert lines[j2] == 'Standard errors in parentheses', lines[j2]
+    #     ...and prose between member lines stops the loop too (no eating past a non-member)
+    j3, e3 = skip_dump(['Description', 'A short segue', 'Role'], tbl2_md)
+    assert j3 == 1 and e3 == 1, (j3, e3)
+    # (c) separator row and empties never enter the whitelist
+    assert '---' not in tbl_cells(tbl2_md) and '' not in tbl_cells(tbl2_md)
+    # (d) Render-TableMd escapes in-cell pipes as '\|'; the dump line has the RAW pipe -- must match
+    md_pipe = "| a\\|b | plain |\n| --- | --- |\n| x | y |"
+    assert tbl_cells(md_pipe) == {'a|b', 'plain', 'x', 'y'}, tbl_cells(md_pipe)
+    j4, e4 = skip_dump(['a|b', 'plain', 'x', 'y'], md_pipe)
+    assert j4 == 4 and e4 == 4
+    # (e) whitespace normalization: double-space dump line still matches a single-space cell
+    j5, e5 = skip_dump(['Trust in  local government officials'], tbl2_md)
+    assert j5 == 1 and e5 == 1
+    # (f) missing/empty table md -> empty whitelist -> loop stops at once, keeps everything
+    j6, e6 = skip_dump(['anything', 'at all'], '')
+    assert j6 == 0 and e6 == 0
+    # (g) dump lines arrive Markdown-ESCAPED (§2.5 escaper runs first) -- must still match raw cells
+    j7, e7 = skip_dump(['admin\\_burden', 'Government-employment connection',
+                        'Continuous; winsorized at the 99th percentile'], tbl2_md)
+    assert j7 == 3 and e7 == 3, (j7, e7)
+    ci_md = "| CI | ATT |\n| --- | --- |\n| [-0.84, -0.39] | -0.62 |"
+    j8, e8 = skip_dump(['\\[-0.84, -0.39\\]', '-0.62'], ci_md)
+    assert j8 == 2 and e8 == 2, (j8, e8)
+    # (h) real-corpus CI shape: the cell holds U+2212 minus signs, but the dump line was math-FOLDED
+    #     to ASCII '-' by section 0 (bracketed token containing U+2212) -- the fold applied to the
+    #     cell must bridge the two spellings (7 tables hit this on the first run)
+    ci_md_u2212 = "| CI |\n| --- |\n| [−0.84, −0.39] |"
+    j9, e9 = skip_dump(['\\[-0.84, -0.39\\]'], ci_md_u2212)
+    assert j9 == 1 and e9 == 1, (j9, e9)
+    print("[OK] T22 table cell-dump whitelist skip: 12 assertions pass (long cells eaten, short prose kept)")
+
 if __name__ == "__main__":
     test_omml_placeholder_fold()
     test_omml_placeholder_fold_minus_form()
@@ -340,4 +430,5 @@ if __name__ == "__main__":
     test_frontmatter_fig_routing()
     test_tier3_sentinel()
     test_t21_5_captions_and_homes()
+    test_tbl_dump_whitelist_skip()
     print("ALL T21 transform.py fix tests passed.")
